@@ -28,11 +28,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "HackStyx", url: "https://github.com/HackStyx" }],
   creator: "HackStyx",
-  metadataBase: new URL("https://moodmelody.vercel.app"),
+  metadataBase: new URL("https://mood-melody-app.vercel.app"),
   openGraph: {
     title: "MoodMelody – Your Personal Music Mood Diary",
     description: "Track your mood and memories through music. Discover, reflect, and relive your emotional journey with MoodMelody.",
-    url: "https://moodmelody.vercel.app",
+    url: "https://mood-melody-app.vercel.app",
     siteName: "MoodMelody",
     images: [
       {
@@ -60,15 +60,19 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "32x32" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.ico",
-    apple: "/favicon.svg",
+    shortcut: [
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+    ],
+    apple: [
+      { url: "/favicon.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
   },
   manifest: "/manifest.json",
   alternates: {
-    canonical: "https://moodmelody.vercel.app"
+    canonical: "https://mood-melody-app.vercel.app"
   }
 };
 
@@ -86,6 +90,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
