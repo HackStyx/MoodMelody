@@ -1,0 +1,41 @@
+{
+  "name": "MoodMelody - Your Personal Music Mood Diary",
+  "short_name": "MoodMelody",
+  "description": "Track your mood and memories through music. Discover, reflect, and relive your emotional journey.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366F1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "music"],
+  "screenshots": [
+    {
+      "src": "/home-l.png",
+      "sizes": "1870x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "MoodMelody Dashboard Light Mode"
+    },
+    {
+      "src": "/home-d.png",
+      "sizes": "1870x1080", 
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "MoodMelody Dashboard Dark Mode"
+    }
+  ]
+} 
