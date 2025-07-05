@@ -170,7 +170,6 @@ graph TB
 
 </div>
 
----
 
 
 
@@ -423,7 +422,7 @@ Response:
 ## 📞 Support
 
 - **🌐 Live Demo**: [mood-melody-app.vercel.app](https://mood-melody-app.vercel.app)
-- **📧 Email**: [Contact HackStyx](mailto:hackstyx@example.com)
+- **📧 Email**: [Contact HackStyx](mailto: princegupta8497@gmail.com)
 - **🐙 GitHub**: [Open an Issue](https://github.com/HackStyx/MoodMelody/issues)
 - **🐦 Twitter**: [@hackstyx](https://x.com/hackstyx)
 
