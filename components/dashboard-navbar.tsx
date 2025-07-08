@@ -19,7 +19,7 @@ export default function DashboardNavbar({ onSignOut }: { onSignOut?: () => void 
   const isActive = (href: string) => pathname === href;
 
   return (
-    <header className="fixed top-0 left-0 z-40 w-full md:top-6 md:left-1/2 md:w-auto md:max-w-3xl md:transform md:-translate-x-1/2 flex justify-center animate-navbar-fade-in px-0 md:px-0">
+    <header className="fixed top-0 left-0 z-40 w-full md:top-6 md:left-1/2 md:w-auto md:max-w-4xl lg:max-w-5xl md:transform md:-translate-x-1/2 flex justify-center animate-navbar-fade-in px-0 md:px-0">
       <nav className="flex items-center justify-between w-full gap-x-4 md:gap-x-8 px-2 py-2 md:px-8 md:py-3 rounded-none md:rounded-2xl border-b md:border md:border-border bg-background/80 md:bg-background/70 shadow-none md:shadow-xl md:shadow-black/10 backdrop-blur-lg ring-0 md:ring-1 md:ring-black/5 md:dark:ring-white/10 transition-all duration-300">
         <div className="flex items-center gap-2 md:gap-3">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -63,12 +63,12 @@ export default function DashboardNavbar({ onSignOut }: { onSignOut?: () => void 
           </Link>
         </div>
         {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-4 lg:gap-6 xl:gap-8">
           {navItems.map((item) => (
             <Link 
               key={item.href}
               href={item.href} 
-              className={`font-medium transition-all duration-200 relative ${
+              className={`font-medium transition-all duration-200 relative whitespace-nowrap ${
                 isActive(item.href)
                   ? "text-primary font-semibold"
                   : "text-muted-foreground hover:text-accent-foreground"

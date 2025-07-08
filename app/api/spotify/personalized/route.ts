@@ -85,9 +85,9 @@ const emotionSearchStrategy: Record<string, {
 // Clean genre mapping - only use valid Spotify genres
 const validSpotifyGenres: Record<string, string> = {
   "Pop": "pop",
-  "Rock": "rock", 
+  "Rock": "rock",
   "Hip-Hop": "hip-hop",
-  "Jazz": "jazz",
+  "Jazz": "jazz", 
   "Classical": "classical",
   "Electronic": "electronic",
   "R&B": "r-n-b",
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
         // Combine user preference with emotion
         searchQueries.push(`${strategy.primary[0]} ${spotifyGenre}`); // e.g., "happy pop"
         console.log(`🎵 Including user preference: ${userGenre} (${spotifyGenre})`);
-      }
+    }
     }
 
     console.log(`🔍 Search queries: ${searchQueries.join(", ")}`);

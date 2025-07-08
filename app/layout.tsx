@@ -101,7 +101,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProviderClient>
-          {children}
+        {children}
           <Analytics />
           <SpeedInsights />
         </ThemeProviderClient>

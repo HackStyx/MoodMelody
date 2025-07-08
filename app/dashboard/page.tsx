@@ -29,6 +29,140 @@ type Mood = { emoji: string; label: string };
 
 const EMOJI_OPTIONS = ["😄", "😊", "😐", "😢", "😡", "😴", "🤩", "😱", "🥳", "😔", "😇", "🤔"];
 
+// Streak Calendar Component
+const StreakCalendar = ({ streak, lastActive, user }: { streak: number; lastActive: string; user: any }) => {
+  const [activityData, setActivityData] = useState<{[key: string]: boolean}>({});
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      if (!user) return;
+
+      const today = new Date();
+      const sevenDaysAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000); // Last 7 days including today
+
+      try {
+        // Fetch mood entries for the last 7 days
+        const { data: moodData } = await supabase
+          .from("moods")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", sevenDaysAgo.toISOString())
+          .order("created_at", { ascending: false });
+
+        // Fetch journal entries for the last 7 days
+        const { data: journalData } = await supabase
+          .from("mood_journals")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", sevenDaysAgo.toISOString())
+          .order("created_at", { ascending: false });
+
+        // Create activity map
+        const activityMap: {[key: string]: boolean} = {};
+        
+        // Mark days with mood entries
+        moodData?.forEach(entry => {
+          const date = entry.created_at.split('T')[0];
+          activityMap[date] = true;
+        });
+
+        // Mark days with journal entries
+        journalData?.forEach(entry => {
+          const date = entry.created_at.split('T')[0];
+          activityMap[date] = true;
+        });
+
+        setActivityData(activityMap);
+      } catch (error) {
+        console.error("Error fetching activity data:", error);
+      }
+    };
+
+    fetchActivityData();
+  }, [user, streak]);
+
+  // Generate the last 7 days
+  const generateWeekDays = () => {
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = ['S','M','T','W','T','F','S'][date.getDay()];
+      const hasActivity = activityData[dateStr] || false;
+      
+      days.push({
+        day: dayName,
+        date: dateStr,
+        hasActivity,
+        isToday: i === 0
+      });
+    }
+    
+    return days;
+  };
+
+  const weekDays = generateWeekDays();
+
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-5xl mb-2">🔥</span>
+      <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">
+        {streak} day{streak === 1 ? '' : 's'} strong!
+      </h3>
+      <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">
+        Last active: {lastActive ? new Date(lastActive).toLocaleDateString() : '—'}
+      </div>
+      
+      {/* Day labels */}
+      <div className="w-full flex justify-center mt-2">
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                day.isToday 
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-300 text-white" 
+                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-500"
+              }`}
+            >
+              {day.day}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Activity indicators */}
+      <div className="w-full flex justify-center mt-2">
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-8 rounded-lg flex items-center justify-center text-base font-bold transition-all ${
+                day.hasActivity
+                  ? day.isToday
+                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg animate-pulse" 
+                    : "bg-gradient-to-r from-orange-400 to-red-400 text-white shadow-md"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
+              }`}
+              title={day.hasActivity ? `Active on ${new Date(day.date).toLocaleDateString()}` : `No activity on ${new Date(day.date).toLocaleDateString()}`}
+            >
+              {day.hasActivity ? '🔥' : '○'}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {streak > 0 && (
+        <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 text-center">
+          Keep it up! 🎯
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
@@ -200,14 +334,14 @@ export default function Dashboard() {
     }
     
     try {
-      // Save to Supabase
+    // Save to Supabase
       const { data, error } = await supabase.from("mood_journals").insert({
-        user_id: user.id,
-        text: journalText,
-        tag: journalTag,
-        emotion: detectedEmotion
-      });
-      
+      user_id: user.id,
+      text: journalText,
+      tag: journalTag,
+      emotion: detectedEmotion
+    });
+    
       if (error) {
         console.error("Error saving journal:", error);
         alert("Failed to save journal entry. Please try again.");
@@ -215,40 +349,40 @@ export default function Dashboard() {
       }
       
       // Reset form
-      setJournalText("");
-      setJournalTag("");
-      if (tagInputRef.current) tagInputRef.current.value = "";
-      
-      // Refetch latest journal
+    setJournalText("");
+    setJournalTag("");
+    if (tagInputRef.current) tagInputRef.current.value = "";
+    
+    // Refetch latest journal
       const { data: latestData } = await supabase
-        .from("mood_journals")
-        .select("text, tag, emotion, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      .from("mood_journals")
+      .select("text, tag, emotion, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
       if (latestData) setLatestJournal(latestData);
       
       // Update streak
-      await updateStreak();
-      
-      // Get music recommendations based on detected emotion
-      if (detectedEmotion) {
-        try {
-          const musicResp = await fetch("/api/spotify/recommendations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ emotion: detectedEmotion, limit: 5 })
-          });
-          const musicData = await musicResp.json();
-          setMusicRecommendations(musicData.recommendations || []);
-          setShowMusicRecommendations(true);
-        } catch (err) {
-          console.error("Music recommendations failed:", err);
-        }
+    await updateStreak();
+    
+    // Get music recommendations based on detected emotion
+    if (detectedEmotion) {
+      try {
+        const musicResp = await fetch("/api/spotify/recommendations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ emotion: detectedEmotion, limit: 5 })
+        });
+        const musicData = await musicResp.json();
+        setMusicRecommendations(musicData.recommendations || []);
+        setShowMusicRecommendations(true);
+      } catch (err) {
+        console.error("Music recommendations failed:", err);
       }
-      
-      alert(`Journal submitted! Emotion detected: ${detectedEmotion} (${Math.round(emotionConfidence * 100)}% confidence)`);
+    }
+    
+    alert(`Journal submitted! Emotion detected: ${detectedEmotion} (${Math.round(emotionConfidence * 100)}% confidence)`);
       
     } catch (err) {
       console.error("Journal submission failed:", err);
@@ -391,11 +525,11 @@ export default function Dashboard() {
                 {profileName || user.user_metadata?.name || user.email}
                 <Avatar
                   src={user.user_metadata?.avatar_url}
-                  alt="User Avatar"
+                    alt="User Avatar"
                   size="sm"
                   fallbackText={profileName || user.user_metadata?.name || user.email}
                   className="inline-block ml-2 align-middle"
-                />
+                  />
                 <span className="align-middle ml-2 text-black dark:text-white text-xl sm:text-2xl md:text-3xl">👋</span>
               </span>
               <p className="text-lg sm:text-xl text-zinc-700 dark:text-zinc-200 font-medium mt-2">
@@ -452,31 +586,7 @@ export default function Dashboard() {
           </div>
           {/* Streak Widget Card */}
           <div className="w-full max-w-full md:max-w-[420px] flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-yellow-100 via-pink-100 to-indigo-100 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800 rounded-3xl shadow-xl px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 min-w-[0] border-0 backdrop-blur-md relative overflow-hidden h-full min-h-[180px]">
-            <div className="flex flex-col items-center">
-              <span className="text-5xl mb-2">🔥</span>
-              <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">{streak} day{streak === 1 ? '' : 's'} strong!</h3>
-              <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">Last active: {lastActive ? new Date(lastActive).toLocaleDateString() : '—'}</div>
-              {/* Streak Calendar Placeholder */}
-              <div className="w-full flex justify-center mt-2">
-                <div className="grid grid-cols-7 gap-2">
-                  {[...Array(7)].map((_, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${i === 6 ? "bg-gradient-to-r from-blue-500 to-cyan-300 text-white" : "bg-zinc-200 dark:bg-zinc-700 text-zinc-500"}`}>
-                      {['S','M','T','W','T','F','S'][i]}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="w-full flex justify-center mt-2">
-                <div className="grid grid-cols-7 gap-2">
-                  {[...Array(7)].map((_, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-base font-bold ${i === 6 ? "bg-gradient-to-r from-blue-500 to-cyan-300 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"}`}>
-                      {/* Placeholder for streak days */}
-                      {i === 6 ? '🔥' : '☠️'}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <StreakCalendar streak={streak} lastActive={lastActive} user={user} />
           </div>
         </div>
         {/* Mood Journal and Expandable Cards Section */}

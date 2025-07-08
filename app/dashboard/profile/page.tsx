@@ -137,11 +137,11 @@ export default function Profile() {
           <div className="flex-shrink-0 flex flex-col items-center mt-6 md:mt-0 md:ml-8">
             <Avatar
               src={user.user_metadata?.avatar_url}
-              alt="User Avatar"
+                alt="User Avatar"
               size="xxl"
               fallbackText={name || user.user_metadata?.name || user.email}
               style={{ boxShadow: '0 8px 32px 0 rgba(0,0,0,0.12)' }}
-            />
+              />
           </div>
         </div>
         {/* Card below row, centered */}
