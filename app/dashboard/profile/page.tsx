@@ -6,11 +6,145 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import DashboardNavbar from "@/components/dashboard-navbar";
+import DashboardDock from "@/components/dashboard-dock";
 import { Avatar } from "@/components/ui/avatar";
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+
+// Streak Calendar Component
+const StreakCalendar = ({ streak, lastActive, user }: { streak: number; lastActive: string; user: any }) => {
+  const [activityData, setActivityData] = useState<{[key: string]: boolean}>({});
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      if (!user) return;
+
+      const today = new Date();
+      const sevenDaysAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000); // Last 7 days including today
+
+      try {
+        // Fetch mood entries for the last 7 days
+        const { data: moodData } = await supabase
+          .from("moods")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", sevenDaysAgo.toISOString())
+          .order("created_at", { ascending: false });
+
+        // Fetch journal entries for the last 7 days
+        const { data: journalData } = await supabase
+          .from("mood_journals")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .gte("created_at", sevenDaysAgo.toISOString())
+          .order("created_at", { ascending: false });
+
+        // Create activity map
+        const activityMap: {[key: string]: boolean} = {};
+        
+        // Mark days with mood entries
+        moodData?.forEach(entry => {
+          const date = entry.created_at.split('T')[0];
+          activityMap[date] = true;
+        });
+
+        // Mark days with journal entries
+        journalData?.forEach(entry => {
+          const date = entry.created_at.split('T')[0];
+          activityMap[date] = true;
+        });
+
+        setActivityData(activityMap);
+      } catch (error) {
+        console.error("Error fetching activity data:", error);
+      }
+    };
+
+    fetchActivityData();
+  }, [user, streak]);
+
+  // Generate the last 7 days
+  const generateWeekDays = () => {
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = ['S','M','T','W','T','F','S'][date.getDay()];
+      const hasActivity = activityData[dateStr] || false;
+      
+      days.push({
+        day: dayName,
+        date: dateStr,
+        hasActivity,
+        isToday: i === 0
+      });
+    }
+    
+    return days;
+  };
+
+  const weekDays = generateWeekDays();
+
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-5xl mb-2">🔥</span>
+      <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">
+        {streak} day{streak === 1 ? '' : 's'} strong!
+      </h3>
+      <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">
+        Last active: {lastActive ? new Date(lastActive).toLocaleDateString() : '—'}
+      </div>
+      
+      {/* Day labels */}
+      <div className="w-full flex justify-center mt-2">
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                day.isToday 
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-300 text-white" 
+                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-500"
+              }`}
+            >
+              {day.day}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Activity indicators */}
+      <div className="w-full flex justify-center mt-2">
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day, i) => (
+            <div 
+              key={i} 
+              className={`w-8 h-8 rounded-lg flex items-center justify-center text-base font-bold transition-all ${
+                day.hasActivity
+                  ? day.isToday
+                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg animate-pulse" 
+                    : "bg-gradient-to-r from-orange-400 to-red-400 text-white shadow-md"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
+              }`}
+              title={day.hasActivity ? `Active on ${new Date(day.date).toLocaleDateString()}` : `No activity on ${new Date(day.date).toLocaleDateString()}`}
+            >
+              {day.hasActivity ? '🔥' : '○'}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {streak > 0 && (
+        <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 text-center">
+          Keep it up! 🎯
+        </div>
+      )}
+    </div>
+  );
+};
 
 const GENRES = [
   "Pop", "Rock", "Hip-Hop", "Jazz", "Classical", "Electronic", "R&B", "Country", "Indie", "Chill", "Happy", "Sad", "Energetic", "Calm"
@@ -34,6 +168,8 @@ export default function Profile() {
   const [showEdit, setShowEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [streak, setStreak] = useState<number>(0);
+  const [lastActive, setLastActive] = useState<string>("");
 
   // Prevent background scroll when dialog is open
   useEffect(() => {
@@ -75,6 +211,47 @@ export default function Profile() {
     };
     getProfile();
   }, [router]);
+
+  // Fetch streak data
+  useEffect(() => {
+    const fetchStreak = async () => {
+      if (!user) return;
+      
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const { data: streakData, error: streakError } = await supabase
+          .from("streaks")
+          .select("streak_count, last_active")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (streakError && streakError.code !== 'PGRST116') {
+          console.error("Streak fetch error:", streakError);
+          setStreak(0);
+          setLastActive("");
+          return;
+        }
+        
+        if (streakData) {
+          setStreak(streakData.streak_count || 0);
+          setLastActive(streakData.last_active || "");
+        } else {
+          setStreak(0);
+          setLastActive("");
+        }
+      } catch (error) {
+        console.error("Streak check error:", error);
+        setStreak(0);
+        setLastActive("");
+      }
+    };
+    
+    if (user) {
+      fetchStreak();
+    }
+  }, [user]);
 
   // Save profile to Supabase
   async function handleSubmit(e: React.FormEvent) {
@@ -121,10 +298,15 @@ export default function Profile() {
     );
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace("/signin");
+  };
+
   return (
     <>
-      <DashboardNavbar />
-      <div className="flex flex-col items-center justify-center min-h-screen pt-10 px-2 sm:px-4 bg-white dark:bg-black">
+      <DashboardDock onSignOut={handleSignOut} />
+      <div className="flex flex-col items-center justify-center min-h-screen px-2 sm:px-4 pb-32 bg-white dark:bg-black">
         {/* Top Row: Greeting and Avatar */}
         <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-4xl gap-0 md:gap-10">
           {/* Greeting */}
@@ -225,6 +407,20 @@ export default function Profile() {
                 </Button>
       </Card>
     </div>
+          </motion.div>
+        </div>
+        {/* Streak Widget Card */}
+        <div className="w-full flex justify-center mt-6">
+          <motion.div
+            whileHover={{
+              scale: 1.02,
+              transition: { duration: 0.3, type: "spring" }
+            }}
+            className="relative max-w-md w-full"
+          >
+            <div className="w-full max-w-full flex flex-col items-center justify-center bg-gradient-to-br from-yellow-100 via-pink-100 to-indigo-100 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800 rounded-3xl shadow-xl px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 min-w-[0] border-0 backdrop-blur-md relative overflow-hidden">
+              <StreakCalendar streak={streak} lastActive={lastActive} user={user} />
+            </div>
           </motion.div>
         </div>
         {/* Personalize Form - Dialog Popup */}

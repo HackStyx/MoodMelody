@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import DashboardNavbar from "@/components/dashboard-navbar";
+import DashboardDock from "@/components/dashboard-dock";
 import { motion } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1019,11 +1019,16 @@ export default function MoodHistory() {
     });
   }, [moodJournals]);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace("/signin");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-        <DashboardNavbar />
-        <div className="container mx-auto px-4 py-8">
+        <DashboardDock onSignOut={handleSignOut} />
+        <div className="container mx-auto px-4 py-8 pb-32">
           <LoadingSkeleton />
         </div>
       </div>
@@ -1033,8 +1038,8 @@ export default function MoodHistory() {
   if (!user || !analytics || moodJournals.length === 0) {
   return (
     <>
-      <DashboardNavbar />
-    <div className="flex flex-col items-center justify-center min-h-screen pt-24 px-4">
+      <DashboardDock onSignOut={handleSignOut} />
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 pb-32">
       <Card className="w-full max-w-xl shadow-lg">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
@@ -1067,8 +1072,8 @@ export default function MoodHistory() {
 
   return (
     <>
-      <DashboardNavbar />
-      <div className="min-h-screen pt-24 px-4 pb-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-indigo-900/30 dark:to-purple-900/30 relative overflow-hidden">
+      <DashboardDock onSignOut={handleSignOut} />
+      <div className="min-h-screen px-4 pb-32 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-indigo-900/30 dark:to-purple-900/30 relative overflow-hidden">
         {/* Background decorations */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-transparent"></div>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>

@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// OpenRouter API for emotion detection using free LLMs
-async function detectEmotionWithLLM(text: string): Promise<{
+// Gemini API keys - primary and fallback (from environment variables only)
+const GEMINI_PRIMARY_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_FALLBACK_KEY = process.env.GEMINI_FALLBACK_API_KEY;
+
+// Available Gemini models in priority order
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',        // Default: Fast and efficient
+  'gemini-2.5-pro',          // Fallback 1: More capable
+  'gemini-flash-latest',      // Fallback 2: Always latest flash
+  'gemini-pro-latest'         // Fallback 3: Always latest pro
+];
+
+// Gemini API for emotion detection
+async function detectEmotionWithGemini(
+  text: string, 
+  apiKey: string, 
+  model: string,
+  keyLabel: string
+): Promise<{
   emotion: string;
   confidence: number;
   reasoning: string;
 }> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error('OpenRouter API key not configured');
-  }
-
   const prompt = `Analyze the emotional content of this text and classify it into one of these emotions: joy, sadness, anger, fear, love, surprise.
 
 Text: "${text}"
@@ -26,37 +37,37 @@ Respond with ONLY a JSON object in this exact format:
 Valid emotions: joy, sadness, anger, fear, love, surprise
 Confidence should be between 0.0 and 1.0`;
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'http://localhost:3000',
-      'X-Title': 'MoodMelody Emotion Detection'
-    },
-    body: JSON.stringify({
-      model: 'mistralai/mistral-small-3.2-24b-instruct:free', // Mistral Small 24B (free)
-      messages: [
-        {
-          role: 'user',
-          content: prompt
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1, // Low temperature for consistent results
+          maxOutputTokens: 200,
         }
-      ],
-      max_tokens: 150,
-      temperature: 0.1 // Low temperature for consistent results
-    })
-  });
+      })
+    }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+    throw new Error(`Gemini API error (${keyLabel}, ${model}): ${response.status} - ${errorText.substring(0, 200)}`);
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content?.trim();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   
   if (!content) {
-    throw new Error('No response from OpenRouter');
+    throw new Error(`No response from Gemini API (${keyLabel}, ${model})`);
   }
 
   try {
@@ -81,60 +92,161 @@ Confidence should be between 0.0 and 1.0`;
     };
     
   } catch (parseError) {
-    console.error('Failed to parse LLM response:', content);
+    console.error(`Failed to parse Gemini response (${keyLabel}, ${model}):`, content);
     throw new Error('Failed to parse emotion detection response');
   }
 }
 
-// AI Analysis function using OpenRouter
-async function handleAIAnalysis(prompt: string): Promise<NextResponse> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+// Try Gemini API with all models and keys as fallbacks
+async function detectEmotionWithLLM(text: string): Promise<{
+  emotion: string;
+  confidence: number;
+  reasoning: string;
+  source: string;
+}> {
+  // Check if at least one key is available
+  if (!GEMINI_PRIMARY_KEY && !GEMINI_FALLBACK_KEY) {
+    throw new Error('No Gemini API keys configured');
+  }
+
+  // Try each model with primary key first, then fallback key
+  for (const model of GEMINI_MODELS) {
+    // Try primary key if available
+    if (GEMINI_PRIMARY_KEY) {
+      try {
+        console.log(`Attempting Gemini API with model ${model} (primary key)...`);
+        const result = await detectEmotionWithGemini(text, GEMINI_PRIMARY_KEY, model, 'primary');
+        return { 
+          ...result, 
+          source: `gemini-primary-${model.replace('gemini-', '').replace(/-/g, '_')}` 
+        };
+      } catch (primaryError) {
+        console.log(`Primary key failed with ${model}, trying fallback key...`);
+      }
+    }
+    
+    // Try fallback key with same model if available
+    if (GEMINI_FALLBACK_KEY) {
+      try {
+        console.log(`Attempting Gemini API with model ${model} (fallback key)...`);
+        const result = await detectEmotionWithGemini(text, GEMINI_FALLBACK_KEY, model, 'fallback');
+        return { 
+          ...result, 
+          source: `gemini-fallback-${model.replace('gemini-', '').replace(/-/g, '_')}` 
+        };
+      } catch (fallbackError) {
+        console.log(`Both keys failed with ${model}, trying next model...`);
+        // Continue to next model
+        continue;
+      }
+    }
+  }
   
-  if (!apiKey) {
+  // All models and keys failed
+  throw new Error('All Gemini API models and keys failed');
+}
+
+// AI Analysis function using Gemini API with all models and keys as fallbacks
+async function handleAIAnalysis(prompt: string): Promise<NextResponse> {
+  // Check if at least one key is available
+  if (!GEMINI_PRIMARY_KEY && !GEMINI_FALLBACK_KEY) {
     return NextResponse.json({
       analysis: 'AI analysis is currently unavailable. However, your consistent mood tracking shows great self-awareness and commitment to emotional well-being.'
     });
   }
 
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'MoodMelody AI Analysis'
-      },
-      body: JSON.stringify({
-        model: 'mistralai/mistral-small-3.2-24b-instruct:free',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7
-      })
-    });
+  // Try each model with primary key first, then fallback key
+  for (const model of GEMINI_MODELS) {
+    // Try primary key if available
+    if (GEMINI_PRIMARY_KEY) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_PRIMARY_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2000,
+            }
+          })
+        }
+      );
 
-    if (!response.ok) {
-      throw new Error('API request failed');
+      if (response.ok) {
+        const data = await response.json();
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        
+        if (analysis) {
+          console.log(`AI Analysis successful with ${model} (primary key)`);
+          return NextResponse.json({
+            analysis: analysis
+          });
+        }
+      } else {
+        console.warn(`Gemini primary key failed with ${model}: ${response.status} ${response.statusText}`);
+      }
+      } catch (error) {
+        console.warn(`Gemini primary key error with ${model}:`, error instanceof Error ? error.message : 'Unknown error');
+      }
     }
 
-    const data = await response.json();
-    const analysis = data.choices?.[0]?.message?.content?.trim();
-    
-    return NextResponse.json({
-      analysis: analysis || 'Analysis completed. Your mood tracking journey shows positive engagement with emotional self-awareness.'
-    });
+    // Try fallback key with same model if available
+    if (GEMINI_FALLBACK_KEY) {
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_FALLBACK_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2000,
+            }
+          })
+        }
+      );
 
-  } catch (error) {
-    console.error('AI Analysis error:', error);
-    return NextResponse.json({
-      analysis: 'Your mood tracking shows dedication to emotional growth. Keep journaling to discover patterns and insights about your emotional well-being.'
-    });
+      if (response.ok) {
+        const data = await response.json();
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        
+        if (analysis) {
+          console.log(`AI Analysis successful with ${model} (fallback key)`);
+          return NextResponse.json({
+            analysis: analysis
+          });
+        }
+      } else {
+        console.warn(`Gemini fallback key failed with ${model}: ${response.status} ${response.statusText}`);
+      }
+      } catch (error) {
+        console.warn(`Gemini fallback key error with ${model}:`, error instanceof Error ? error.message : 'Unknown error');
+      }
+    }
   }
+
+  // All models and keys failed, return fallback message
+  console.warn('All Gemini models and keys failed for AI analysis, using fallback message');
+  return NextResponse.json({
+    analysis: 'Your mood tracking shows dedication to emotional growth. Keep journaling to discover patterns and insights about your emotional well-being.'
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -160,28 +272,25 @@ export async function POST(request: NextRequest) {
 
     console.log(`Processing emotion detection for: "${text}"`);
 
-    // Try OpenRouter API first (using free LLM)
-    if (process.env.OPENROUTER_API_KEY) {
-      try {
-        console.log('Attempting OpenRouter API with Mistral Small 24B...');
-        
-        const llmResult = await detectEmotionWithLLM(text);
-        
-        console.log(`LLM detected: ${llmResult.emotion} (${(llmResult.confidence * 100).toFixed(1)}%)`);
-        console.log(`Reasoning: ${llmResult.reasoning}`);
+    // Try Gemini API first (with automatic fallback between keys)
+    try {
+      console.log('Attempting Gemini API with automatic key fallback...');
+      
+      const llmResult = await detectEmotionWithLLM(text);
+      
+      console.log(`Gemini detected: ${llmResult.emotion} (${(llmResult.confidence * 100).toFixed(1)}%)`);
+      console.log(`Reasoning: ${llmResult.reasoning}`);
+      console.log(`Source: ${llmResult.source}`);
 
-        return NextResponse.json({
-          emotion: llmResult.emotion,
-          confidence: llmResult.confidence,
-          reasoning: llmResult.reasoning,
-          source: 'openrouter-mistral'
-        });
-        
-      } catch (error) {
-        console.log('OpenRouter API failed, using fallback:', error instanceof Error ? error.message : 'Unknown error');
-      }
-    } else {
-      console.log('No OpenRouter API key, using fallback');
+      return NextResponse.json({
+        emotion: llmResult.emotion,
+        confidence: llmResult.confidence,
+        reasoning: llmResult.reasoning,
+        source: llmResult.source
+      });
+      
+    } catch (error) {
+      console.log('Gemini API failed (both keys), using keyword fallback:', error instanceof Error ? error.message : 'Unknown error');
     }
 
     // Use enhanced fallback detection

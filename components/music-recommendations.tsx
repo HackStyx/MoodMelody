@@ -104,30 +104,42 @@ export function MusicRecommendations({
     return (
       <div className="max-w-2xl mx-auto w-full p-8 text-center">
         <div className="text-6xl mb-4">🎵</div>
-        <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
+        <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300 mb-2" style={{ fontFamily: 'var(--font-poppins)' }}>
           No music recommendations yet
         </h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-slate-600 dark:text-slate-400 mb-6" style={{ fontFamily: 'var(--font-inter)' }}>
           Get personalized music recommendations based on your profile preferences and latest journal emotions!
         </p>
         {onGetPersonalizedRecommendations && (
           <button
             onClick={onGetPersonalizedRecommendations}
             disabled={isLoadingPersonalized}
-            className={`px-6 py-3 rounded-full font-bold text-white transition-all ${
-              isLoadingPersonalized 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : `bg-gradient-to-r ${colorClass} hover:opacity-90 hover:scale-105`
-            }`}
+            className={`
+              group relative inline-flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold text-white transition-all shadow-lg
+              ${isLoadingPersonalized 
+                ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed' 
+                : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 hover:shadow-xl active:scale-95'
+              }
+            `}
+            style={{ fontFamily: 'var(--font-inter)' }}
           >
             {isLoadingPersonalized ? (
               <>
-                <span className="inline-block animate-spin mr-2">🎵</span>
-                Getting Recommendations...
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Getting Recommendations...</span>
               </>
             ) : (
               <>
-                🎯 Get Personalized Recommendations
+                <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span>Get Personalized Recommendations</span>
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </>
             )}
           </button>
@@ -228,30 +240,42 @@ export function MusicRecommendations({
       
       <div className="max-w-2xl mx-auto w-full">
         <div className="mb-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2" style={{ fontFamily: 'var(--font-poppins)' }}>
             Music for your {emotion} {emotionEmojis[emotion.toLowerCase()] || '🎵'}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-slate-600 dark:text-slate-400 mb-4" style={{ fontFamily: 'var(--font-inter)' }}>
             Curated tracks based on your emotional state
           </p>
           {onGetPersonalizedRecommendations && (
             <button
               onClick={onGetPersonalizedRecommendations}
               disabled={isLoadingPersonalized}
-              className={`px-4 py-2 rounded-full font-semibold text-white transition-all text-sm ${
-                isLoadingPersonalized 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : `bg-gradient-to-r ${colorClass} hover:opacity-90 hover:scale-105`
-              }`}
+              className={`
+                group relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg font-medium text-white transition-all shadow-md text-sm
+                ${isLoadingPersonalized 
+                  ? 'bg-slate-400 dark:bg-slate-700 cursor-not-allowed' 
+                  : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 hover:shadow-lg active:scale-95'
+                }
+              `}
+              style={{ fontFamily: 'var(--font-inter)' }}
             >
               {isLoadingPersonalized ? (
                 <>
-                  <span className="inline-block animate-spin mr-2">🎵</span>
-                  Getting Personalized...
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Getting Personalized...</span>
                 </>
               ) : (
                 <>
-                  🎯 Get Personalized Recommendations
+                  <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                  <span>Get Personalized Recommendations</span>
+                  <svg className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                 </>
               )}
             </button>
