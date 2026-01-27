@@ -8,14 +8,14 @@ import DashboardDock from "@/components/dashboard-dock";
 import { motion } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { 
-  Calendar, 
-  TrendingUp, 
-  TrendingDown, 
-  Heart, 
-  Brain, 
-  BarChart3, 
-  PieChart, 
+import {
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Heart,
+  Brain,
+  BarChart3,
+  PieChart,
   Activity,
   Flame,
   BookOpen,
@@ -44,7 +44,7 @@ import {
 // Emotion colors for consistency
 const emotionColors = {
   joy: "#FFD700",
-  love: "#FF69B4", 
+  love: "#FF69B4",
   sadness: "#4169E1",
   anger: "#FF4500",
   fear: "#8A2BE2",
@@ -62,7 +62,7 @@ const emotionGradients = {
 
 const emotionEmojis = {
   joy: "😄",
-  love: "❤️", 
+  love: "❤️",
   sadness: "😢",
   anger: "😡",
   fear: "😨",
@@ -73,14 +73,14 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), 0, 1); // Start of current year
   const endDate = new Date(now.getFullYear(), 11, 31); // End of current year
-  
+
   // Create a map of dates to mood scores
   const moodMap = new Map();
   moodJournals.forEach(journal => {
     const date = journal.created_at.split('T')[0];
     const moodScores = { joy: 5, love: 4, surprise: 3, fear: 2, sadness: 1, anger: 0 };
     const score = moodScores[journal.emotion as keyof typeof moodScores] || 2.5;
-    
+
     if (!moodMap.has(date)) {
       moodMap.set(date, []);
     }
@@ -97,23 +97,23 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
   // Generate calendar grid
   const weeks: any[] = [];
   let currentDate = new Date(startDate);
-  
+
   // Start from the beginning of the week containing January 1st
   currentDate.setDate(currentDate.getDate() - currentDate.getDay());
-  
+
   while (currentDate <= endDate) {
     const week = [];
     for (let i = 0; i < 7; i++) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const moodScore = dailyMoods.get(dateStr);
-      
+
       week.push({
         date: new Date(currentDate),
         dateStr,
         moodScore,
         hasEntry: moodMap.has(dateStr)
       });
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
     weeks.push(week);
@@ -144,13 +144,13 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
       <CardContent>
         <div className="overflow-x-auto">
           <div className="flex gap-1 mb-4">
-                         {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
-               const monthStart = weeks.findIndex((week: any) => 
-                 week.some((day: any) => day.date.getMonth() === index && day.date.getFullYear() === now.getFullYear())
-               );
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+              const monthStart = weeks.findIndex((week: any) =>
+                week.some((day: any) => day.date.getMonth() === index && day.date.getFullYear() === now.getFullYear())
+              );
               return (
-                <div 
-                  key={month} 
+                <div
+                  key={month}
                   className="text-xs text-muted-foreground font-medium"
                   style={{ marginLeft: monthStart > 0 ? `${monthStart * 14}px` : '0' }}
                 >
@@ -159,7 +159,7 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
               );
             })}
           </div>
-          
+
           <div className="flex gap-1">
             <div className="flex flex-col gap-1 mr-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
@@ -168,26 +168,25 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
                 </div>
               ))}
             </div>
-            
+
             <div className="flex gap-1">
               {weeks.map((week, weekIndex) => (
                 <div key={weekIndex} className="flex flex-col gap-1">
-                                     {week.map((day: any, dayIndex: number) => (
+                  {week.map((day: any, dayIndex: number) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
                       className={`w-3 h-3 rounded-md ${getColorIntensity(day.moodScore)} hover:scale-125 hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 transition-all duration-300 cursor-pointer border border-white/20`}
-                      title={`${day.date.toLocaleDateString()}: ${
-                        day.hasEntry 
-                          ? `Mood score: ${day.moodScore?.toFixed(1)}/5` 
+                      title={`${day.date.toLocaleDateString()}: ${day.hasEntry
+                          ? `Mood score: ${day.moodScore?.toFixed(1)}/5`
                           : 'No entries'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
               ))}
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between mt-6 p-4 bg-white/50 dark:bg-slate-800/50 rounded-xl backdrop-blur-sm">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -220,26 +219,26 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
 const MoodStreaks = ({ moodJournals }: { moodJournals: any[] }) => {
   const calculateStreaks = () => {
     if (moodJournals.length === 0) return { current: 0, longest: 0, positive: 0 };
-    
+
     // Sort by date
-    const sorted = [...moodJournals].sort((a, b) => 
+    const sorted = [...moodJournals].sort((a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-    
+
     let currentStreak = 0;
     let longestStreak = 0;
     let positiveStreak = 0;
     let tempPositive = 0;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Check current streak (consecutive days with entries)
     for (let i = 0; i < 30; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() - i);
       const dateStr = checkDate.toISOString().split('T')[0];
-      
+
       const hasEntry = sorted.some(j => j.created_at.startsWith(dateStr));
       if (hasEntry) {
         currentStreak++;
@@ -247,11 +246,11 @@ const MoodStreaks = ({ moodJournals }: { moodJournals: any[] }) => {
         break;
       }
     }
-    
+
     // Calculate longest streak and positive mood streak
     let tempLongest = 0;
     const positiveEmotions = ['joy', 'love', 'surprise'];
-    
+
     sorted.forEach((journal, index) => {
       tempLongest++;
       if (positiveEmotions.includes(journal.emotion)) {
@@ -260,17 +259,17 @@ const MoodStreaks = ({ moodJournals }: { moodJournals: any[] }) => {
         positiveStreak = Math.max(positiveStreak, tempPositive);
         tempPositive = 0;
       }
-      
-      if (index === sorted.length - 1 || 
-          new Date(sorted[index + 1].created_at).getDate() !== 
-          new Date(journal.created_at).getDate() + 1) {
+
+      if (index === sorted.length - 1 ||
+        new Date(sorted[index + 1].created_at).getDate() !==
+        new Date(journal.created_at).getDate() + 1) {
         longestStreak = Math.max(longestStreak, tempLongest);
         tempLongest = 0;
       }
     });
-    
+
     positiveStreak = Math.max(positiveStreak, tempPositive);
-    
+
     return { current: currentStreak, longest: longestStreak, positive: positiveStreak };
   };
 
@@ -358,22 +357,45 @@ const AIAnalysisCard = ({ moodJournals, analytics, user, profileName }: { moodJo
   const [loading, setLoading] = useState(false);
   const [analysisGenerated, setAnalysisGenerated] = useState(false);
 
-  const generateAIAnalysis = async () => {
-    if (analysisGenerated || moodJournals.length === 0) return;
-    
+  const generateAIAnalysis = async (force: boolean = false) => {
+    // If not forced, check for cached analysis first
+    if (!force) {
+      try {
+        const cachedAnalysis = localStorage.getItem('mood_ai_analysis');
+        const cachedTimestamp = localStorage.getItem('mood_ai_timestamp');
+
+        if (cachedAnalysis && cachedTimestamp) {
+          const now = Date.now();
+          const age = now - parseInt(cachedTimestamp);
+          const cooldown = 15 * 60 * 1000; // 15 minutes
+
+          if (age < cooldown) {
+            setAiAnalysis(cachedAnalysis);
+            setAnalysisGenerated(true);
+            console.log('Loaded analysis from cache');
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Cache read error', e);
+      }
+    }
+
+    if ((analysisGenerated && !force) || moodJournals.length === 0) return;
+
     setLoading(true);
-    
+
     try {
       // Prepare mood data for AI analysis
       const recentEntries = moodJournals.slice(0, 10);
-      const emotionSummary = analytics.emotionDistribution.map((e: any) => 
+      const emotionSummary = analytics.emotionDistribution.map((e: any) =>
         `${e.emotion}: ${e.count} entries (${e.percentage}%)`
       ).join(', ');
-      
-      const moodDataText = recentEntries.map(entry => 
+
+      const moodDataText = recentEntries.map(entry =>
         `Date: ${entry.created_at.split('T')[0]}, Emotion: ${entry.emotion}, Text: "${entry.text?.slice(0, 100) || 'No text'}"...`
       ).join('\n');
-      
+
       const prompt = `You are Dr. AI, a leading AI emotional wellness specialist with expertise in mood pattern analysis and personalized mental health insights. Analyze this user's emotional journey with deep empathy and professional expertise.
 
 ## 📊 **MOOD DATA PROFILE**
@@ -453,48 +475,83 @@ Use warm, professional language with specific examples from their data. Include 
       const response = await fetch('/api/emotion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: prompt,
-          isAnalysis: true 
+          isAnalysis: true
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setAiAnalysis(data.analysis || 'Analysis completed successfully. Your mood journey shows positive patterns and growth opportunities.');
-        
+        const result = data.analysis || 'Analysis completed successfully. Your mood journey shows positive patterns and growth opportunities.';
+        setAiAnalysis(result);
+
+        // Save to cache
+        try {
+          localStorage.setItem('mood_ai_analysis', result);
+          localStorage.setItem('mood_ai_timestamp', Date.now().toString());
+        } catch (e) {
+          console.error('Cache save error', e);
+        }
+
         // Show success toast notification
         console.log('✅ AI Analysis completed successfully!');
       } else {
         setAiAnalysis('Unable to generate AI analysis at this time. Your mood data shows consistent engagement and emotional awareness, which are positive signs for mental well-being.');
       }
-      
+
       setAnalysisGenerated(true);
     } catch (error) {
       console.error('AI Analysis error:', error);
       setAiAnalysis('Your mood tracking shows dedication to self-awareness. Consider the patterns in your emotions and celebrate the positive moments while learning from challenging times.');
       setAnalysisGenerated(true);
     }
-    
+
     setLoading(false);
   };
 
   // Auto-generate analysis when component mounts
   useEffect(() => {
     if (moodJournals.length > 0 && !analysisGenerated) {
-      generateAIAnalysis();
+      generateAIAnalysis(false);
     }
   }, [moodJournals, analysisGenerated]);
+
+  const handleRefreshAnalysis = () => {
+    const cachedTimestamp = localStorage.getItem('mood_ai_timestamp');
+    if (cachedTimestamp) {
+      const now = Date.now();
+      const age = now - parseInt(cachedTimestamp);
+      const cooldown = 15 * 60 * 1000; // 15 minutes
+
+      if (age < cooldown) {
+        const remainingMinutes = Math.ceil((cooldown - age) / 60000);
+        alert(`Analysis is fresh! You can regenerate in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`);
+        return;
+      }
+    }
+
+    // Proceed with refresh
+    setAnalysisGenerated(false);
+    setAiAnalysis('');
+    // We don't call generateAIAnalysis here. 
+    // Setting analysisGenerated(false) will trigger the useEffect, which calls generateAIAnalysis(false).
+    // But generateAIAnalysis(false) checks cache!
+    // So we need to ensure the next call forces it, OR we clear cache here.
+    // Clearing cache is safer.
+    localStorage.removeItem('mood_ai_analysis');
+    localStorage.removeItem('mood_ai_timestamp');
+  };
 
   const generateQuickInsights = () => {
     const totalEntries = moodJournals.length;
     const positiveEmotions = moodJournals.filter(j => ['joy', 'love', 'surprise'].includes(j.emotion)).length;
     const positiveRatio = totalEntries > 0 ? (positiveEmotions / totalEntries * 100).toFixed(1) : 0;
-    
+
     const recentEntries = moodJournals.slice(0, 7);
     const recentPositive = recentEntries.filter(j => ['joy', 'love', 'surprise'].includes(j.emotion)).length;
     const trend = recentPositive >= recentEntries.length / 2 ? 'improving' : 'stable';
-    
+
     return { positiveRatio, trend };
   };
 
@@ -505,7 +562,7 @@ Use warm, professional language with specific examples from their data. Include 
       <div className="absolute inset-0 bg-gradient-to-br from-slate-300/5 to-slate-400/5 dark:from-slate-600/5 dark:to-slate-700/5"></div>
       <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-slate-300/10 to-slate-400/10 dark:from-slate-600/10 dark:to-slate-700/10 rounded-full -translate-y-20 translate-x-20 blur-3xl"></div>
       <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-br from-slate-300/8 to-slate-400/8 dark:from-slate-600/8 dark:to-slate-700/8 rounded-full translate-y-16 -translate-x-16 blur-3xl"></div>
-      
+
       <CardHeader className="relative z-10 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white border-b border-slate-200/20 dark:border-slate-600/30">
         <CardTitle className="flex items-center gap-4 text-2xl">
           <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 dark:from-purple-600/20 dark:to-pink-600/20 rounded-xl backdrop-blur-sm border border-purple-300/30 dark:border-purple-500/30 shadow-lg">
@@ -532,7 +589,7 @@ Use warm, professional language with specific examples from their data. Include 
           </div>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="relative z-10 p-8">
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -546,7 +603,7 @@ Use warm, professional language with specific examples from their data. Include 
                   🧠
                 </div>
               </div>
-              
+
               {/* Loading text with gradient */}
               <div className="text-center space-y-3">
                 <div className="text-2xl font-bold text-slate-700 dark:text-slate-300">
@@ -559,7 +616,7 @@ Use warm, professional language with specific examples from their data. Include 
                   Our advanced AI is carefully examining your emotional journey to provide deep, personalized insights
                 </div>
               </div>
-              
+
               {/* Progress indicators */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm">
@@ -575,7 +632,7 @@ Use warm, professional language with specific examples from their data. Include 
                   <span className="text-slate-600 dark:text-slate-400 font-medium">Generating personalized insights</span>
                 </div>
               </div>
-              
+
               {/* Estimated time */}
               <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-full">
                 ⏱️ Estimated time: 10-15 seconds
@@ -588,7 +645,7 @@ Use warm, professional language with specific examples from their data. Include 
               {/* Background decorative elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-300/10 to-slate-400/10 dark:from-slate-600/10 dark:to-slate-700/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-slate-300/8 to-slate-400/8 dark:from-slate-600/8 dark:to-slate-700/8 rounded-full translate-y-12 -translate-x-12 blur-2xl"></div>
-              
+
               <div className="relative z-10">
                 <div className="flex items-start gap-6">
                   <div className="flex-shrink-0">
@@ -610,7 +667,7 @@ Use warm, professional language with specific examples from their data. Include 
                         Personalized emotional wellness insights powered by advanced AI analysis
                       </p>
                     </div>
-                    
+
                     <div className="prose prose-sm max-w-none 
                       prose-headings:bg-gradient-to-r prose-headings:from-indigo-600 prose-headings:via-purple-600 prose-headings:to-pink-600 prose-headings:bg-clip-text prose-headings:text-transparent prose-headings:font-bold prose-headings:mb-4 prose-headings:text-lg
                       prose-strong:text-indigo-700 dark:prose-strong:text-indigo-300 prose-strong:font-semibold prose-strong:bg-indigo-50 dark:prose-strong:bg-indigo-900/30 prose-strong:px-1 prose-strong:py-0.5 prose-strong:rounded
@@ -628,7 +685,7 @@ Use warm, professional language with specific examples from their data. Include 
                       ">
                       {aiAnalysis ? (
                         <div className="space-y-4">
-                          <ReactMarkdown 
+                          <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
                               h2: ({ children }) => (
@@ -664,7 +721,7 @@ Use warm, professional language with specific examples from their data. Include 
                           >
                             {aiAnalysis}
                           </ReactMarkdown>
-                          
+
                           {/* Achievement badge */}
                           <div className="mt-8 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
                             <div className="flex items-center gap-3">
@@ -694,10 +751,10 @@ Use warm, professional language with specific examples from their data. Include 
                 </div>
               </div>
             </div>
-            
+
             {!analysisGenerated && !loading && (
               <div className="text-center">
-                <Button 
+                <Button
                   onClick={generateAIAnalysis}
                   className="bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 hover:from-slate-700 hover:via-slate-800 hover:to-slate-900 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 dark:hover:from-slate-600 dark:hover:via-slate-700 dark:hover:to-slate-800 text-white px-10 py-4 text-lg font-semibold rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300"
                   disabled={loading || moodJournals.length === 0}
@@ -719,10 +776,10 @@ Use warm, professional language with specific examples from their data. Include 
                 )}
               </div>
             )}
-            
+
             {analysisGenerated && (
               <div className="flex justify-center mt-6">
-                <Button 
+                <Button
                   onClick={() => {
                     setAnalysisGenerated(false);
                     setAiAnalysis('');
@@ -753,11 +810,9 @@ const FloatingParticles = () => {
           key={i}
           className="absolute w-2 h-2 rounded-full"
           style={{
-            background: `linear-gradient(45deg, ${
-              ['#60A5FA', '#A78BFA', '#F472B6', '#34D399', '#FBBF24'][i % 5]
-            }, ${
-              ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B'][i % 5]
-            })`,
+            background: `linear-gradient(45deg, ${['#60A5FA', '#A78BFA', '#F472B6', '#34D399', '#FBBF24'][i % 5]
+              }, ${['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B'][i % 5]
+              })`,
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
           }}
@@ -783,21 +838,21 @@ const LoadingSkeleton = () => (
   <div className="space-y-8 animate-pulse">
     {/* Header skeleton */}
     <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-    
+
     {/* Streak cards skeleton */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {[1, 2, 3].map(i => (
         <div key={i} className="bg-gray-200 dark:bg-gray-700 h-24 rounded-lg"></div>
       ))}
     </div>
-    
+
     {/* Stats cards skeleton */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {[1, 2, 3, 4].map(i => (
         <div key={i} className="bg-gray-200 dark:bg-gray-700 h-32 rounded-lg"></div>
       ))}
     </div>
-    
+
     {/* Charts skeleton */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {[1, 2].map(i => (
@@ -847,9 +902,9 @@ export default function MoodHistory() {
   useEffect(() => {
     const fetchMoodData = async () => {
       if (!user) return;
-      
+
       setLoading(true);
-      
+
       try {
         // Fetch mood journals
         const { data: journalData, error: journalError } = await supabase
@@ -857,7 +912,7 @@ export default function MoodHistory() {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
-        
+
         if (journalError) {
           console.error("Error fetching journals:", journalError);
         } else {
@@ -870,7 +925,7 @@ export default function MoodHistory() {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
-        
+
         if (moodError) {
           console.error("Error fetching moods:", moodError);
         } else {
@@ -883,7 +938,7 @@ export default function MoodHistory() {
           .select("streak_count")
           .eq("user_id", user.id)
           .maybeSingle();
-        
+
         if (streakError) {
           console.error("Error fetching streak:", streakError);
         } else {
@@ -893,7 +948,7 @@ export default function MoodHistory() {
       } catch (error) {
         console.error("Error fetching data:", error);
       }
-      
+
       setLoading(false);
     };
 
@@ -931,16 +986,16 @@ export default function MoodHistory() {
     for (let i = 13; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
-      const dayJournals = moodJournals.filter(j => 
+      const dayJournals = moodJournals.filter(j =>
         j.created_at.split('T')[0] === dateStr
       );
-      
+
       // Calculate mood score (joy=5, love=4, surprise=3, fear=2, sadness=1, anger=0)
       const moodScores = {
         joy: 5, love: 4, surprise: 3, fear: 2, sadness: 1, anger: 0
       };
-      
-      const avgMood = dayJournals.length > 0 
+
+      const avgMood = dayJournals.length > 0
         ? dayJournals.reduce((sum, j) => sum + (moodScores[j.emotion as keyof typeof moodScores] || 2.5), 0) / dayJournals.length
         : null;
 
@@ -963,14 +1018,14 @@ export default function MoodHistory() {
       const date = new Date(j.created_at);
       return date >= prevWeekStart && date < sevenDaysAgo;
     });
-    
+
     const prevWeekEmotions = prevWeekJournals.reduce((acc: Record<string, number>, j) => {
       acc[j.emotion] = (acc[j.emotion] || 0) + 1;
       return acc;
     }, {});
 
     // Most active emotion
-    const mostCommonEmotion = emotionDistribution.length > 0 
+    const mostCommonEmotion = emotionDistribution.length > 0
       ? emotionDistribution.reduce((prev, current) => prev.count > current.count ? prev : current)
       : null;
 
@@ -998,7 +1053,7 @@ export default function MoodHistory() {
 
     // Calculate average mood score
     const moodScores = { joy: 5, love: 4, surprise: 3, fear: 2, sadness: 1, anger: 0 };
-    const avgMoodScore = recentJournals.length > 0 
+    const avgMoodScore = recentJournals.length > 0
       ? recentJournals.reduce((sum, j) => sum + (moodScores[j.emotion as keyof typeof moodScores] || 2.5), 0) / recentJournals.length
       : 0;
 
@@ -1013,7 +1068,7 @@ export default function MoodHistory() {
       thisWeekEmotions,
       prevWeekEmotions,
       avgMoodScore,
-      avgWordsPerEntry: recentJournals.length > 0 
+      avgWordsPerEntry: recentJournals.length > 0
         ? Math.round(recentJournals.reduce((sum, j) => sum + (j.text?.split(' ').length || 0), 0) / recentJournals.length)
         : 0
     });
@@ -1036,11 +1091,11 @@ export default function MoodHistory() {
   }
 
   if (!user || !analytics || moodJournals.length === 0) {
-  return (
-    <>
-      <DashboardDock onSignOut={handleSignOut} />
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 pb-32">
-      <Card className="w-full max-w-xl shadow-lg">
+    return (
+      <>
+        <DashboardDock onSignOut={handleSignOut} />
+        <div className="flex flex-col items-center justify-center min-h-screen px-4 pb-32">
+          <Card className="w-full max-w-xl shadow-lg">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
                 <BookOpen className="w-8 h-8 text-blue-600" />
@@ -1051,7 +1106,7 @@ export default function MoodHistory() {
               <p className="text-muted-foreground mb-6">
                 Begin tracking your emotions to unlock powerful insights and beautiful visualizations of your mood patterns.
               </p>
-              <Button 
+              <Button
                 onClick={() => router.push('/dashboard')}
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
               >
@@ -1079,12 +1134,12 @@ export default function MoodHistory() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-orange-300/30 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-pink-200/30 to-purple-300/30 rounded-full blur-3xl"></div>
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
           <FloatingParticles />
-          
+
           {/* Header */}
-          <motion.div 
+          <motion.div
             className="text-center mb-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1106,8 +1161,8 @@ export default function MoodHistory() {
             className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
           >
             {/* Current Streak */}
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -8 }} 
+            <motion.div
+              whileHover={{ scale: 1.02, y: -8 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="group cursor-pointer"
             >
@@ -1115,10 +1170,10 @@ export default function MoodHistory() {
                 {/* Animated background effects */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-orange-500/20 dark:via-red-500/15 dark:to-pink-500/10 opacity-60"></div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-300/20 dark:from-yellow-400/30 to-transparent rounded-full transform translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-700"></div>
-                
+
                 {/* Enhanced dark mode border glow */}
                 <div className="absolute inset-0 rounded-lg border border-transparent dark:border-orange-400/20 dark:shadow-inner dark:shadow-orange-500/10"></div>
-                
+
                 {/* Floating particles effect */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-4 left-4 w-1 h-1 bg-yellow-300 dark:bg-yellow-400 rounded-full animate-ping"></div>
@@ -1128,7 +1183,7 @@ export default function MoodHistory() {
 
                 <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
                   <div className="flex-1 space-y-2">
-                    <motion.p 
+                    <motion.p
                       className="text-orange-100 dark:text-orange-200 text-sm font-medium tracking-wide"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1149,7 +1204,7 @@ export default function MoodHistory() {
                     <p className="text-orange-200 dark:text-orange-300 text-xs font-medium tracking-wider">
                       consecutive journaling
                     </p>
-                    
+
                     {/* Progress indicator */}
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center gap-2">
@@ -1160,7 +1215,7 @@ export default function MoodHistory() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <motion.div className="relative ml-4">
                     <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">🔥</div>
                     {streak > 0 && (
@@ -1176,8 +1231,8 @@ export default function MoodHistory() {
             </motion.div>
 
             {/* Current Emotion */}
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -8 }} 
+            <motion.div
+              whileHover={{ scale: 1.02, y: -8 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="group cursor-pointer"
             >
@@ -1185,10 +1240,10 @@ export default function MoodHistory() {
                 {/* Animated background effects */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-purple-500/20 dark:via-indigo-500/15 dark:to-blue-500/10 opacity-60"></div>
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-300/15 dark:from-blue-400/25 to-transparent rounded-full transform -translate-x-20 translate-y-20 group-hover:scale-125 transition-transform duration-700"></div>
-                
+
                 {/* Enhanced dark mode border glow */}
                 <div className="absolute inset-0 rounded-lg border border-transparent dark:border-purple-400/20 dark:shadow-inner dark:shadow-purple-500/10"></div>
-                
+
                 {/* Floating particles effect */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-6 right-4 w-1 h-1 bg-blue-200 dark:bg-blue-300 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
@@ -1198,7 +1253,7 @@ export default function MoodHistory() {
 
                 <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
                   <div className="flex-1 space-y-2">
-                    <motion.p 
+                    <motion.p
                       className="text-purple-100 dark:text-purple-200 text-sm font-medium tracking-wide"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1218,19 +1273,18 @@ export default function MoodHistory() {
                     <p className="text-purple-200 dark:text-purple-300 text-xs font-medium tracking-wider">
                       most frequent this week
                     </p>
-                    
+
                     {/* Emotion strength indicator */}
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center gap-2">
                         <div className="flex gap-1">
                           {[...Array(5)].map((_, i) => (
-                            <div 
+                            <div
                               key={i}
-                              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                                i < (analytics.mostCommonEmotion?.count || 0) / 2 
-                                  ? 'bg-yellow-300 dark:bg-yellow-400 shadow-sm dark:shadow-yellow-400/50' 
+                              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i < (analytics.mostCommonEmotion?.count || 0) / 2
+                                  ? 'bg-yellow-300 dark:bg-yellow-400 shadow-sm dark:shadow-yellow-400/50'
                                   : 'bg-white/30 dark:bg-white/20'
-                              }`}
+                                }`}
                             />
                           ))}
                         </div>
@@ -1240,7 +1294,7 @@ export default function MoodHistory() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <motion.div className="relative ml-4">
                     <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">
                       {emotionEmojis[analytics.mostCommonEmotion?.emotion as keyof typeof emotionEmojis] || '🎭'}
@@ -1256,8 +1310,8 @@ export default function MoodHistory() {
             </motion.div>
 
             {/* Mood Score */}
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -8 }} 
+            <motion.div
+              whileHover={{ scale: 1.02, y: -8 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="group cursor-pointer"
             >
@@ -1265,10 +1319,10 @@ export default function MoodHistory() {
                 {/* Animated background effects */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/15 dark:to-cyan-500/10 opacity-60"></div>
                 <div className="absolute top-0 left-0 w-36 h-36 bg-gradient-to-br from-cyan-300/15 dark:from-cyan-400/25 to-transparent rounded-full transform -translate-x-18 -translate-y-18 group-hover:scale-150 transition-transform duration-700"></div>
-                
+
                 {/* Enhanced dark mode border glow */}
                 <div className="absolute inset-0 rounded-lg border border-transparent dark:border-emerald-400/20 dark:shadow-inner dark:shadow-emerald-500/10"></div>
-                
+
                 {/* Floating particles effect */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-8 left-6 w-1 h-1 bg-cyan-200 dark:bg-cyan-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
@@ -1278,7 +1332,7 @@ export default function MoodHistory() {
 
                 <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
                   <div className="flex-1 space-y-2">
-                    <motion.p 
+                    <motion.p
                       className="text-emerald-100 dark:text-emerald-200 text-sm font-medium tracking-wide"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1301,11 +1355,11 @@ export default function MoodHistory() {
                     <p className="text-emerald-200 dark:text-emerald-300 text-xs font-medium tracking-wider">
                       average this month
                     </p>
-                    
+
                     {/* Progress bar */}
                     <div className="mt-2 space-y-1">
                       <div className="w-full bg-white/20 dark:bg-white/10 rounded-full h-2 overflow-hidden shadow-inner dark:shadow-emerald-900/50">
-                        <motion.div 
+                        <motion.div
                           className="h-full bg-gradient-to-r from-yellow-300 to-emerald-300 dark:from-yellow-400 dark:to-emerald-400 rounded-full shadow-sm dark:shadow-emerald-400/50"
                           initial={{ width: 0 }}
                           animate={{ width: `${((analytics.avgMoodScore || 0) / 5) * 100}%` }}
@@ -1314,15 +1368,15 @@ export default function MoodHistory() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-emerald-100 dark:text-emerald-200 font-medium">
-                          {analytics.avgMoodScore >= 4 ? 'Excellent! 🌟' : 
-                           analytics.avgMoodScore >= 3 ? 'Good progress 👍' : 
-                           analytics.avgMoodScore >= 2 ? 'Building up 💪' : 
-                           'New beginning 🌱'}
+                          {analytics.avgMoodScore >= 4 ? 'Excellent! 🌟' :
+                            analytics.avgMoodScore >= 3 ? 'Good progress 👍' :
+                              analytics.avgMoodScore >= 2 ? 'Building up 💪' :
+                                'New beginning 🌱'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <motion.div className="relative ml-4">
                     <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">🌟</div>
                     <motion.div
@@ -1350,10 +1404,10 @@ export default function MoodHistory() {
                 {/* Animated background effects */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-blue-500/15 dark:via-indigo-500/10 dark:to-purple-500/5 opacity-60"></div>
                 <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-300/20 dark:from-blue-400/25 to-transparent rounded-full transform translate-x-20 -translate-y-20 group-hover:scale-125 transition-transform duration-700"></div>
-                
+
                 {/* Enhanced dark mode border glow */}
                 <div className="absolute inset-0 rounded-lg border border-transparent dark:border-blue-400/20 dark:shadow-inner dark:shadow-blue-500/10"></div>
-                
+
                 {/* Floating particles effect */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-6 left-8 w-1 h-1 bg-blue-200 dark:bg-blue-300 rounded-full animate-ping"></div>
@@ -1378,23 +1432,23 @@ export default function MoodHistory() {
                     </div>
                   </CardTitle>
                 </CardHeader>
-                
+
                 <CardContent className="relative z-10 p-6 bg-gradient-to-br from-white/80 via-blue-50/60 to-indigo-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-slate-800/80 backdrop-blur-sm">
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={analytics.dailyTrend.filter((d: any) => d.mood !== null)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-600" />
-                        <XAxis 
-                          dataKey="date" 
+                        <XAxis
+                          dataKey="date"
                           className="text-xs text-slate-600 dark:text-slate-400"
                           tick={{ fontSize: 12, fill: 'currentColor' }}
                         />
-                        <YAxis 
-                          domain={[0, 5]} 
+                        <YAxis
+                          domain={[0, 5]}
                           className="text-xs text-slate-600 dark:text-slate-400"
                           tick={{ fontSize: 12, fill: 'currentColor' }}
                         />
-                        <Tooltip 
+                        <Tooltip
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
@@ -1416,19 +1470,19 @@ export default function MoodHistory() {
                             return null;
                           }}
                         />
-                        <Area 
-                          type="monotone" 
-                          dataKey="mood" 
-                          stroke="#3B82F6" 
-                          fill="url(#colorMood)" 
+                        <Area
+                          type="monotone"
+                          dataKey="mood"
+                          stroke="#3B82F6"
+                          fill="url(#colorMood)"
                           strokeWidth={3}
                           dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
                           activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
                         />
                         <defs>
                           <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
                           </linearGradient>
                         </defs>
                       </AreaChart>
@@ -1450,10 +1504,10 @@ export default function MoodHistory() {
                 {/* Animated background effects */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-purple-500/15 dark:via-pink-500/10 dark:to-rose-500/5 opacity-60"></div>
                 <div className="absolute bottom-0 left-0 w-44 h-44 bg-gradient-to-tr from-pink-300/20 dark:from-pink-400/25 to-transparent rounded-full transform -translate-x-22 translate-y-22 group-hover:scale-125 transition-transform duration-700"></div>
-                
+
                 {/* Enhanced dark mode border glow */}
                 <div className="absolute inset-0 rounded-lg border border-transparent dark:border-purple-400/20 dark:shadow-inner dark:shadow-purple-500/10"></div>
-                
+
                 {/* Floating particles effect */}
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute top-8 right-6 w-1 h-1 bg-purple-200 dark:bg-purple-300 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
@@ -1493,22 +1547,22 @@ export default function MoodHistory() {
                           dataKey="count"
                         >
                           {analytics.emotionDistribution.map((entry: any, index: number) => (
-                            <Cell 
-                              key={`cell-${index}`} 
+                            <Cell
+                              key={`cell-${index}`}
                               fill={emotionColors[entry.emotion as keyof typeof emotionColors] || '#8884d8'}
                               stroke="rgba(255,255,255,0.8)"
                               strokeWidth={2}
                             />
                           ))}
                         </Pie>
-                        <Tooltip 
+                        <Tooltip
                           content={({ active, payload }) => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
                               return (
                                 <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl">
                                   <p className="font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                                    {emotionEmojis[data.emotion as keyof typeof emotionEmojis]} 
+                                    {emotionEmojis[data.emotion as keyof typeof emotionEmojis]}
                                     <span className="capitalize">{data.emotion}</span>
                                   </p>
                                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -1520,13 +1574,13 @@ export default function MoodHistory() {
                             return null;
                           }}
                         />
-                        <Legend 
+                        <Legend
                           content={({ payload }) => (
                             <div className="flex flex-wrap gap-3 justify-center mt-4">
                               {payload?.map((entry, index) => (
                                 <div key={index} className="flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-slate-700/70 rounded-full text-xs font-medium backdrop-blur-sm border border-slate-200/50 dark:border-slate-600/50">
-                                  <div 
-                                    className="w-3 h-3 rounded-full shadow-sm" 
+                                  <div
+                                    className="w-3 h-3 rounded-full shadow-sm"
                                     style={{ backgroundColor: entry.color }}
                                   />
                                   <span className="capitalize text-slate-700 dark:text-slate-300">
@@ -1591,22 +1645,22 @@ export default function MoodHistory() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={analytics.monthlyData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-600" />
-                      <XAxis 
-                        dataKey="month" 
+                      <XAxis
+                        dataKey="month"
                         className="text-xs text-slate-600 dark:text-slate-400"
                         tick={{ fontSize: 12, fill: 'currentColor' }}
                       />
-                      <YAxis 
+                      <YAxis
                         className="text-xs text-slate-600 dark:text-slate-400"
-                                                tick={{ fontSize: 12, fill: 'currentColor' }}
+                        tick={{ fontSize: 12, fill: 'currentColor' }}
                       />
-                      <Tooltip 
+                      <Tooltip
                         cursor={false}
                         content={({ active, payload, label }) => {
                           if (active && payload && payload.length) {
                             const validPayload = payload.filter(item => item.value && item.value > 0);
                             if (validPayload.length === 0) return null;
-                            
+
                             const total = validPayload.reduce((sum, item) => sum + (item.value || 0), 0);
                             return (
                               <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-3 border border-slate-200 dark:border-slate-600 rounded-lg shadow-xl">
@@ -1615,8 +1669,8 @@ export default function MoodHistory() {
                                 <div className="space-y-1">
                                   {validPayload.map((item, index) => (
                                     <div key={index} className="flex items-center gap-2">
-                                      <div 
-                                        className="w-2 h-2 rounded-full" 
+                                      <div
+                                        className="w-2 h-2 rounded-full"
                                         style={{ backgroundColor: item.color }}
                                       />
                                       <span className="text-xs capitalize text-slate-700 dark:text-slate-300">
@@ -1631,13 +1685,13 @@ export default function MoodHistory() {
                           return null;
                         }}
                       />
-                      <Legend 
+                      <Legend
                         content={({ payload }) => (
                           <div className="flex flex-wrap gap-3 justify-center mt-4">
                             {payload?.map((entry, index) => (
                               <div key={index} className="flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-slate-700/70 rounded-full text-xs font-medium backdrop-blur-sm border border-slate-200/50 dark:border-slate-600/50">
-                                <div 
-                                  className="w-3 h-3 rounded-full shadow-sm" 
+                                <div
+                                  className="w-3 h-3 rounded-full shadow-sm"
                                   style={{ backgroundColor: entry.color }}
                                 />
                                 <span className="capitalize text-slate-700 dark:text-slate-300">
@@ -1649,9 +1703,9 @@ export default function MoodHistory() {
                         )}
                       />
                       {Object.keys(emotionColors).map((emotion) => (
-                        <Bar 
+                        <Bar
                           key={emotion}
-                          dataKey={emotion} 
+                          dataKey={emotion}
                           stackId="emotions"
                           fill={emotionColors[emotion as keyof typeof emotionColors]}
                           name={emotion}
@@ -1687,7 +1741,7 @@ export default function MoodHistory() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Most productive day:</span>
                     <span className="font-semibold">
-                      {analytics.dailyTrend.reduce((max: any, day: any) => 
+                      {analytics.dailyTrend.reduce((max: any, day: any) =>
                         day.entries > max.entries ? day : max, { entries: 0, date: 'None' }
                       ).date}
                     </span>
@@ -1739,7 +1793,7 @@ export default function MoodHistory() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button 
+                <Button
                   onClick={() => router.push('/dashboard')}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                   size="sm"
@@ -1747,8 +1801,8 @@ export default function MoodHistory() {
                   <BookOpen className="w-4 h-4 mr-2" />
                   New Journal Entry
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   size="sm"
                   onClick={() => router.push('/dashboard/profile')}
@@ -1756,11 +1810,11 @@ export default function MoodHistory() {
                   <Sparkles className="w-4 h-4 mr-2" />
                   Update Preferences
                 </Button>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
-    </div>
+      </div>
     </>
   );
 } 

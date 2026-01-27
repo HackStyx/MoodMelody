@@ -97,12 +97,12 @@ const ProfileIcon = ({ className, isActive }: { className?: string; isActive?: b
     {/* Head */}
     <circle cx="12" cy="9" r="4" fill="url(#profGrad)" opacity={isActive ? 1 : 0.7} />
     {/* Body */}
-    <path d="M6 20 C6 16, 8.5 14, 12 14 C15.5 14, 18 16, 18 20" 
-          stroke="url(#profGrad)" 
-          strokeWidth="2.5" 
-          strokeLinecap="round" 
-          fill="none"
-          opacity={isActive ? 1 : 0.7} />
+    <path d="M6 20 C6 16, 8.5 14, 12 14 C15.5 14, 18 16, 18 20"
+      stroke="url(#profGrad)"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      fill="none"
+      opacity={isActive ? 1 : 0.7} />
     {/* Glow effect */}
     {isActive && (
       <circle cx="12" cy="9" r="5" fill="url(#profGlow)" opacity="0.5">
@@ -117,7 +117,7 @@ const ProfileIcon = ({ className, isActive }: { className?: string; isActive?: b
 const ThemeToggleIcon = ({ isDark, className }: { isDark: boolean; className?: string }) => (
   <motion.div
     className={`flex items-center justify-center w-full h-full ${className}`}
-    animate={{ 
+    animate={{
       rotate: isDark ? [0, -10, 10, 0] : [0, 10, -10, 0],
       scale: [1, 1.05, 1]
     }}
@@ -251,20 +251,23 @@ export default function DashboardDock({ onSignOut }: { onSignOut?: () => void })
   };
 
   const navItems = [
-    { 
-      href: "/dashboard", 
+    {
+      href: "/dashboard",
       label: "Dashboard",
-      isActive: pathname === "/dashboard"
+      isActive: pathname === "/dashboard",
+      glowClass: "drop-shadow-[0_0_10px_rgba(139,92,246,0.7)]"
     },
-    { 
-      href: "/dashboard/mood-history", 
+    {
+      href: "/dashboard/mood-history",
       label: "Mood History",
-      isActive: pathname === "/dashboard/mood-history"
+      isActive: pathname === "/dashboard/mood-history",
+      glowClass: "drop-shadow-[0_0_10px_rgba(236,72,153,0.7)]"
     },
-    { 
-      href: "/dashboard/profile", 
+    {
+      href: "/dashboard/profile",
       label: "Profile",
-      isActive: pathname === "/dashboard/profile"
+      isActive: pathname === "/dashboard/profile",
+      glowClass: "drop-shadow-[0_0_10px_rgba(249,115,22,0.7)]"
     },
   ];
 
@@ -311,7 +314,7 @@ export default function DashboardDock({ onSignOut }: { onSignOut?: () => void })
               </svg>
             </Link>
           </DockIcon>
-          <DockLabel>MoodMelody</DockLabel>
+          <DockLabel className="hidden sm:block">MoodMelody</DockLabel>
         </DockItem>
 
         {/* Navigation Items */}
@@ -324,18 +327,18 @@ export default function DashboardDock({ onSignOut }: { onSignOut?: () => void })
           } else if (item.href === "/dashboard/profile") {
             IconComponent = ProfileIcon;
           }
-          
+
           return (
             <DockItem key={item.href}>
               <DockIcon>
-                <Link 
+                <Link
                   href={item.href}
-                  className="flex items-center justify-center transition-all duration-300 hover:scale-110"
+                  className={`flex items-center justify-center transition-all duration-300 hover:scale-110 ${item.isActive ? item.glowClass : ""}`}
                 >
                   {IconComponent && <IconComponent isActive={item.isActive} className="w-10 h-10" />}
                 </Link>
               </DockIcon>
-              <DockLabel>{item.label}</DockLabel>
+              <DockLabel className="hidden sm:block">{item.label}</DockLabel>
             </DockItem>
           );
         })}
@@ -350,7 +353,7 @@ export default function DashboardDock({ onSignOut }: { onSignOut?: () => void })
               <ThemeToggleIcon isDark={isDark} className="w-10 h-10" />
             </button>
           </DockIcon>
-          <DockLabel>{isDark ? "Light Mode" : "Dark Mode"}</DockLabel>
+          <DockLabel className="hidden sm:block">{isDark ? "Light Mode" : "Dark Mode"}</DockLabel>
         </DockItem>
 
         {/* Sign Out Button */}
@@ -365,7 +368,7 @@ export default function DashboardDock({ onSignOut }: { onSignOut?: () => void })
                   <LogoutIcon className="w-10 h-10" />
                 </button>
               </DockIcon>
-              <DockLabel>Sign Out</DockLabel>
+              <DockLabel className="hidden sm:block">Sign Out</DockLabel>
             </DockItem>
 
             {/* Logout Confirmation Dialog */}
