@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import {
   TrendingUp,
   TrendingDown,
   Heart,
-  Brain,
   BarChart3,
   PieChart,
   Activity,
@@ -23,6 +22,7 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from "lucide-react";
+import { EmotionalIntelligenceIcon } from "@/components/icons/emotional-intelligence-icon";
 import {
   LineChart,
   Line,
@@ -35,7 +35,6 @@ import {
   Cell,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer
@@ -119,100 +118,108 @@ const MoodHeatmap = ({ moodJournals }: { moodJournals: any[] }) => {
     weeks.push(week);
   }
 
-  const getColorIntensity = (score?: number) => {
-    if (!score) return 'bg-gray-100 dark:bg-gray-800 opacity-20';
-    if (score >= 4.5) return 'bg-gradient-to-br from-yellow-300 to-orange-400 shadow-lg'; // Joy/Love
-    if (score >= 3.5) return 'bg-gradient-to-br from-green-300 to-emerald-400 shadow-md'; // Surprise
-    if (score >= 2.5) return 'bg-gradient-to-br from-blue-200 to-indigo-300 shadow-sm'; // Neutral
-    if (score >= 1.5) return 'bg-gradient-to-br from-blue-400 to-purple-500 shadow-md'; // Fear/Sadness
-    return 'bg-gradient-to-br from-red-400 to-pink-500 shadow-lg'; // Anger
+  const entriesThisYear = moodJournals.filter(j => j.created_at.startsWith(now.getFullYear().toString())).length;
+  const totalDays = 366; // leap year safe
+  const filledPercent = Math.round((entriesThisYear / totalDays) * 100);
+
+  const getColorIntensity = (score?: number, hasEntry?: boolean) => {
+    if (!hasEntry) return 'bg-slate-200/40 dark:bg-slate-700/40'; // subtle, uses space without dominating
+    if (!score) return 'bg-slate-300/60 dark:bg-slate-600/50';
+    if (score >= 4.5) return 'bg-gradient-to-br from-yellow-300 to-orange-400 shadow-sm'; // Joy/Love
+    if (score >= 3.5) return 'bg-gradient-to-br from-green-300 to-emerald-400 shadow-sm'; // Surprise
+    if (score >= 2.5) return 'bg-gradient-to-br from-blue-200 to-indigo-300'; // Neutral
+    if (score >= 1.5) return 'bg-gradient-to-br from-blue-400 to-purple-500 shadow-sm'; // Fear/Sadness
+    return 'bg-gradient-to-br from-red-400 to-pink-500 shadow-sm'; // Anger
   };
 
   return (
-    <Card className="mb-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 border-0 shadow-2xl">
-      <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg pb-6">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mb-8">
+    <Card className="overflow-hidden rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/20 dark:shadow-slate-900/40 backdrop-blur-sm">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-6 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/30 dark:to-transparent">
         <CardTitle className="flex items-center gap-3 text-xl">
-          <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-            <Calendar className="w-6 h-6" />
+          <div className="p-2.5 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl shadow-inner">
+            <Calendar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="py-1">
-            <div className="text-xl font-bold leading-relaxed">{now.getFullYear()} Mood Journey</div>
-            <div className="text-sm opacity-90 leading-relaxed">Your emotional landscape this year</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-relaxed" style={{ fontFamily: 'var(--font-poppins)' }}>{now.getFullYear()} Mood Journey</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed" style={{ fontFamily: 'var(--font-inter)' }}>Your emotional landscape this year</div>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <div className="flex gap-1 mb-4">
-            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
-              const monthStart = weeks.findIndex((week: any) =>
-                week.some((day: any) => day.date.getMonth() === index && day.date.getFullYear() === now.getFullYear())
-              );
-              return (
-                <div
-                  key={month}
-                  className="text-xs text-muted-foreground font-medium"
-                  style={{ marginLeft: monthStart > 0 ? `${monthStart * 14}px` : '0' }}
-                >
-                  {month}
-                </div>
-              );
-            })}
+      <CardContent className="pt-6">
+        {/* Heatmap: fills card width, grid uses space evenly */}
+        <div className="w-full">
+          {/* Month labels - 12 equal segments across full width */}
+          <div className="flex w-full mb-2 pl-9 sm:pl-10">
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month) => (
+              <div key={month} className="flex-1 min-w-0 text-center text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {month}
+              </div>
+            ))}
           </div>
 
-          <div className="flex gap-1">
-            <div className="flex flex-col gap-1 mr-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                <div key={day} className="w-2 h-2 text-xs text-muted-foreground flex items-center">
-                  {index % 2 === 1 ? day.slice(0, 1) : ''}
+          <div className="flex w-full gap-0.5 sm:gap-1 min-h-0">
+            {/* Day labels - fixed width, 7 rows */}
+            <div className="flex flex-col gap-0.5 sm:gap-1 shrink-0 w-6 sm:w-8 pr-1.5 justify-evenly">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((letter, index) => (
+                <div key={`${letter}-${index}`} className="flex items-center justify-center text-[10px] text-slate-500 dark:text-slate-400 font-medium h-3 sm:h-4 shrink-0">
+                  {letter}
                 </div>
               ))}
             </div>
 
-            <div className="flex gap-1">
+            {/* Grid: 53 columns share width evenly (flex-1) so no empty space */}
+            <div className="flex-1 min-w-0 flex gap-0.5 sm:gap-1">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-1">
+                <div key={weekIndex} className="flex-1 min-w-0 flex flex-col gap-0.5 sm:gap-1">
                   {week.map((day: any, dayIndex: number) => (
                     <div
                       key={`${weekIndex}-${dayIndex}`}
-                      className={`w-3 h-3 rounded-md ${getColorIntensity(day.moodScore)} hover:scale-125 hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 transition-all duration-300 cursor-pointer border border-white/20`}
-                      title={`${day.date.toLocaleDateString()}: ${day.hasEntry
-                          ? `Mood score: ${day.moodScore?.toFixed(1)}/5`
-                          : 'No entries'
-                        }`}
+                      className={`aspect-square min-h-[6px] sm:min-h-[8px] w-full max-h-4 sm:max-h-5 rounded-[3px] sm:rounded-[4px] ${getColorIntensity(day.moodScore, day.hasEntry)} hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 hover:scale-110 transition-all duration-200 cursor-pointer border border-slate-200/30 dark:border-slate-600/30`}
+                      title={`${day.date.toLocaleDateString()}: ${day.hasEntry ? `Mood ${day.moodScore?.toFixed(1)}/5` : 'No entry'}`}
                     />
                   ))}
                 </div>
               ))}
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-between mt-6 p-4 bg-white/50 dark:bg-slate-800/50 rounded-xl backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-500" />
-                <span className="font-semibold text-indigo-700 dark:text-indigo-300">
-                  {moodJournals.filter(j => j.created_at.startsWith(now.getFullYear().toString())).length} entries this year
-                </span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Keep the streak going! 🔥
-              </div>
+        {/* Footer: uses space with stats + legend + short tip */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
+          <div className="flex flex-wrap items-center gap-4 p-4 bg-slate-50/80 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
+              <span className="font-semibold text-indigo-700 dark:text-indigo-300 text-sm sm:text-base">
+                {entriesThisYear} entries this year
+              </span>
             </div>
-            <div className="flex items-center gap-3 bg-white/70 dark:bg-slate-700/70 px-3 py-2 rounded-lg">
-              <span className="text-xs font-medium">Less</span>
-              <div className="flex gap-1">
-                <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 rounded-sm border border-white/20"></div>
-                <div className="w-3 h-3 bg-gradient-to-br from-blue-200 to-indigo-300 rounded-sm shadow-sm border border-white/20"></div>
-                <div className="w-3 h-3 bg-gradient-to-br from-green-300 to-emerald-400 rounded-sm shadow-md border border-white/20"></div>
-                <div className="w-3 h-3 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-sm shadow-lg border border-white/20"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${Math.min(100, filledPercent)}%` }} />
               </div>
-              <span className="text-xs font-medium">More</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{filledPercent}% of year</span>
             </div>
+            {entriesThisYear < 7 && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 w-full sm:w-auto" style={{ fontFamily: 'var(--font-inter)' }}>
+                Journal more days to light up your year
+              </p>
+            )}
+          </div>
+          <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 bg-slate-50/80 dark:bg-slate-800/50 px-4 py-3 rounded-xl border border-slate-100 dark:border-slate-700/50 shrink-0">
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">Less</span>
+            <div className="flex gap-1">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[3px] bg-slate-300 dark:bg-slate-600 shrink-0" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[3px] bg-blue-300 dark:bg-blue-600 shrink-0" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[3px] bg-emerald-400 dark:bg-emerald-500 shrink-0" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[3px] bg-amber-400 dark:bg-amber-500 shrink-0" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">More</span>
           </div>
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 };
 
@@ -277,73 +284,73 @@ const MoodStreaks = ({ moodJournals }: { moodJournals: any[] }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <motion.div whileHover={{ scale: 1.05, y: -5 }} transition={{ duration: 0.2 }}>
-        <Card className="bg-gradient-to-br from-blue-400 via-blue-500 to-cyan-500 text-white shadow-2xl border-0 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }} whileHover={{ y: -4 }} className="group">
+        <Card className="rounded-2xl border-0 overflow-hidden bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 text-white shadow-xl shadow-orange-500/25 dark:shadow-orange-900/30 hover:shadow-2xl hover:shadow-orange-500/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
           <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Current Streak</p>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-white/90 text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Current Streak</p>
+                <p className="text-4xl font-black text-white mt-1 mb-0.5" style={{ fontFamily: 'var(--font-poppins)' }}>
                   {streaks.current}
                 </p>
-                <p className="text-blue-200 text-xs">consecutive days</p>
+                <p className="text-white/80 text-xs font-medium">consecutive days</p>
                 {streaks.current > 0 && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-blue-100">Active now!</span>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    <span className="text-xs font-medium text-white/90">Active now!</span>
                   </div>
                 )}
               </div>
-              <div className="text-5xl opacity-80 transform hover:scale-110 transition-transform">🔥</div>
+              <div className="text-5xl opacity-90 group-hover:scale-110 transition-transform duration-300">🔥</div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div whileHover={{ scale: 1.05, y: -5 }} transition={{ duration: 0.2 }}>
-        <Card className="bg-gradient-to-br from-purple-400 via-purple-500 to-pink-500 text-white shadow-2xl border-0 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }} whileHover={{ y: -4 }} className="group">
+        <Card className="rounded-2xl border-0 overflow-hidden bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-500 text-white shadow-xl shadow-purple-500/25 dark:shadow-purple-900/30 hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
           <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Longest Streak</p>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-white/90 text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Longest Streak</p>
+                <p className="text-4xl font-black text-white mt-1 mb-0.5" style={{ fontFamily: 'var(--font-poppins)' }}>
                   {streaks.longest}
                 </p>
-                <p className="text-purple-200 text-xs">personal best</p>
+                <p className="text-white/80 text-xs font-medium">personal best</p>
                 {streaks.longest >= 7 && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <div className="w-2 h-2 bg-yellow-300 rounded-full"></div>
-                    <span className="text-xs text-purple-100">Champion!</span>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="w-2 h-2 bg-amber-300 rounded-full" />
+                    <span className="text-xs font-medium text-white/90">Champion!</span>
                   </div>
                 )}
               </div>
-              <div className="text-5xl opacity-80 transform hover:scale-110 transition-transform">🏆</div>
+              <div className="text-5xl opacity-90 group-hover:scale-110 transition-transform duration-300">🏆</div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div whileHover={{ scale: 1.05, y: -5 }} transition={{ duration: 0.2 }}>
-        <Card className="bg-gradient-to-br from-green-400 via-emerald-500 to-teal-500 text-white shadow-2xl border-0 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }} whileHover={{ y: -4 }} className="group">
+        <Card className="rounded-2xl border-0 overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-xl shadow-emerald-500/25 dark:shadow-emerald-900/30 hover:shadow-2xl hover:shadow-emerald-500/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
           <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Positive Streak</p>
-                <p className="text-4xl font-bold text-white mb-1">
+                <p className="text-white/90 text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Positive Streak</p>
+                <p className="text-4xl font-black text-white mt-1 mb-0.5" style={{ fontFamily: 'var(--font-poppins)' }}>
                   {streaks.positive}
                 </p>
-                <p className="text-green-200 text-xs">happy days</p>
+                <p className="text-white/80 text-xs font-medium">happy days</p>
                 {streaks.positive >= 3 && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <div className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-green-100">Inspiring!</span>
+                  <div className="flex items-center gap-2 mt-3">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                    <span className="text-xs font-medium text-white/90">Inspiring!</span>
                   </div>
                 )}
               </div>
-              <div className="text-5xl opacity-80 transform hover:scale-110 transition-transform">✨</div>
+              <div className="text-5xl opacity-90 group-hover:scale-110 transition-transform duration-300">✨</div>
             </div>
           </CardContent>
         </Card>
@@ -356,6 +363,44 @@ const AIAnalysisCard = ({ moodJournals, analytics, user, profileName }: { moodJo
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [analysisGenerated, setAnalysisGenerated] = useState(false);
+
+  // Helper: Get Peak Mood Time
+  const getPeakMoodTime = () => {
+    if (!moodJournals.length) return { time: 'N/A', icon: 'clock' };
+    const hours = moodJournals.map(j => new Date(j.created_at).getHours());
+    const morning = hours.filter(h => h >= 5 && h < 12).length;
+    const afternoon = hours.filter(h => h >= 12 && h < 17).length;
+    const evening = hours.filter(h => h >= 17 && h < 22).length;
+    const night = hours.filter(h => h >= 22 || h < 5).length;
+
+    if (morning >= afternoon && morning >= evening && morning >= night) return { time: 'Morning', icon: 'sun' };
+    if (afternoon >= evening && afternoon >= night) return { time: 'Afternoon', icon: 'cloud-sun' };
+    if (evening >= night) return { time: 'Evening', icon: 'moon' };
+    return { time: 'Night', icon: 'stars' };
+  };
+
+  // Helper: Get Top Keywords (simple frequency)
+  const getTopKeywords = () => {
+    if (!moodJournals.length) return [];
+    const text = moodJournals.map(j => j.text || '').join(' ').toLowerCase();
+    const words = text.match(/\b\w+\b/g) || [];
+    const stopWords = new Set(['the', 'and', 'a', 'to', 'of', 'in', 'i', 'is', 'that', 'it', 'for', 'my', 'was', 'with', 'on', 'at', 'but', 'so', 'just']);
+    const freq: Record<string, number> = {};
+
+    words.forEach(w => {
+      if (!stopWords.has(w) && w.length > 3) {
+        freq[w] = (freq[w] || 0) + 1;
+      }
+    });
+
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([word]) => word);
+  };
+
+  const peakTime = getPeakMoodTime();
+  const keywords = getTopKeywords();
 
   const generateAIAnalysis = async (force: boolean = false) => {
     // If not forced, check for cached analysis first
@@ -372,7 +417,6 @@ const AIAnalysisCard = ({ moodJournals, analytics, user, profileName }: { moodJo
           if (age < cooldown) {
             setAiAnalysis(cachedAnalysis);
             setAnalysisGenerated(true);
-            console.log('Loaded analysis from cache');
             return;
           }
         }
@@ -386,453 +430,239 @@ const AIAnalysisCard = ({ moodJournals, analytics, user, profileName }: { moodJo
     setLoading(true);
 
     try {
-      // Prepare mood data for AI analysis
       const recentEntries = moodJournals.slice(0, 10);
       const emotionSummary = analytics.emotionDistribution.map((e: any) =>
-        `${e.emotion}: ${e.count} entries (${e.percentage}%)`
+        `${e.emotion}: ${e.count} entries`
       ).join(', ');
 
       const moodDataText = recentEntries.map(entry =>
-        `Date: ${entry.created_at.split('T')[0]}, Emotion: ${entry.emotion}, Text: "${entry.text?.slice(0, 100) || 'No text'}"...`
+        `Date: ${entry.created_at.split('T')[0]}, Emotion: ${entry.emotion}, Text: "${entry.text?.slice(0, 100) || ''}"`
       ).join('\n');
 
-      const prompt = `You are Dr. AI, a leading AI emotional wellness specialist with expertise in mood pattern analysis and personalized mental health insights. Analyze this user's emotional journey with deep empathy and professional expertise.
-
-## 📊 **MOOD DATA PROFILE**
-**Timeline:** ${recentEntries.length} recent entries from ${moodJournals.length} total entries
-**Emotional Landscape:** ${emotionSummary}
-**Wellness Score:** ${analytics.avgMoodScore?.toFixed(1) || 'N/A'}/5.0 ⭐
-**Consistency:** Regular journaling pattern detected
-
-**Recent Emotional Journey:**
+      const prompt = `Analyze this user's mood data:
+Data: ${recentEntries.length} entries.
+Emotions: ${emotionSummary}.
+Avg Score: ${analytics.avgMoodScore?.toFixed(1) || 'N/A'}/5.
+Entries:
 ${moodDataText}
 
-Provide a comprehensive, beautifully formatted analysis using this enhanced structure:
+Return a Markdown response using these icons in headers (don't repeat headers):
+## 🧠 Intelligence
+## 🌟 Strengths
+## 🚀 Optimization
+## 🎁 Toolkit
 
-## 🧠 **EMOTIONAL INTELLIGENCE INSIGHTS**
-*Your mind's unique emotional signature*
-
-🔍 **Dominant Patterns:** [Identify 2-3 key emotional themes with specific examples]
-🌊 **Emotional Flow:** [Describe how emotions transition and connect]
-⚡ **Trigger Awareness:** [Note patterns in what sparks different emotions]
-📈 **Trend Analysis:** [Weekly/monthly emotional trajectory]
-
----
-
-## 🌟 **EMOTIONAL STRENGTHS SPOTLIGHT**
-*Celebrating your natural resilience*
-
-✨ **Self-Awareness:** [Acknowledge their journaling commitment and emotional intelligence]
-💫 **Coping Mastery:** [Highlight positive emotional regulation patterns]
-🎯 **Growth Mindset:** [Recognize learning from difficult emotions]
-🏆 **Breakthrough Moments:** [Celebrate specific positive entries or progress]
-
----
-
-## 🚀 **OPTIMIZATION PATHWAYS**
-*Gentle guidance for emotional enhancement*
-
-🎨 **Emotional Range:** [Suggestions for exploring emotional depth]
-🧘 **Mindfulness Opportunities:** [Specific meditation or awareness practices]
-🌱 **Challenge Navigation:** [Strategies for difficult emotional patterns]
-⚖️ **Balance Techniques:** [Ways to maintain emotional equilibrium]
-
----
-
-## 🎁 **PERSONALIZED WELLNESS TOOLKIT**
-*Curated strategies just for you*
-
-**🌅 Morning Rituals:**
-- [Specific morning practice based on their patterns]
-- [Mood-setting technique aligned with their needs]
-
-**🌙 Evening Reflections:**
-- [Journaling prompts tailored to their emotional style]
-- [Relaxation method that matches their personality]
-
-**⚡ Instant Mood Boosters:**
-- [3 quick techniques for emotional regulation]
-- [Activities that align with their positive patterns]
-
-**📱 Digital Wellness:**
-- [App recommendations or digital tools]
-- [Online resources specific to their needs]
-
----
-
-## 🏆 **CELEBRATION & MOMENTUM**
-*Your emotional growth achievements*
-
-🎊 **Progress Celebration:** [Specific improvements and milestones]
-🎯 **Future Vision:** [Encouraging outlook on their emotional journey]
-💝 **Personal Message:** [Warm, motivating closing that feels personal]
-🌈 **Next Steps:** [Clear, achievable goals for continued growth]
-
-**Remember:** Your emotional journey is uniquely yours, and every entry is a step toward greater self-understanding. You're building emotional intelligence that will serve you for life! 🌟
-
-Use warm, professional language with specific examples from their data. Include actionable advice and maintain an encouraging, expert tone throughout.`;
+Provide specific, empathetic insights based on the text and emotions provided. Be professional yet warm.`;
 
       const response = await fetch('/api/emotion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: prompt,
-          isAnalysis: true
-        })
+        body: JSON.stringify({ text: prompt, isAnalysis: true })
       });
 
       if (response.ok) {
         const data = await response.json();
-        const result = data.analysis || 'Analysis completed successfully. Your mood journey shows positive patterns and growth opportunities.';
+        const result = data.analysis;
         setAiAnalysis(result);
 
-        // Save to cache
         try {
           localStorage.setItem('mood_ai_analysis', result);
           localStorage.setItem('mood_ai_timestamp', Date.now().toString());
-        } catch (e) {
-          console.error('Cache save error', e);
-        }
-
-        // Show success toast notification
-        console.log('✅ AI Analysis completed successfully!');
+        } catch (e) { console.error('Cache error', e); }
       } else {
-        setAiAnalysis('Unable to generate AI analysis at this time. Your mood data shows consistent engagement and emotional awareness, which are positive signs for mental well-being.');
+        setAiAnalysis('Analysis unavailable. Please try again later.');
       }
-
       setAnalysisGenerated(true);
     } catch (error) {
       console.error('AI Analysis error:', error);
-      setAiAnalysis('Your mood tracking shows dedication to self-awareness. Consider the patterns in your emotions and celebrate the positive moments while learning from challenging times.');
+      setAiAnalysis('Connection error. Please check your internet and try again.');
       setAnalysisGenerated(true);
     }
 
     setLoading(false);
   };
 
-  // Auto-generate analysis when component mounts
   useEffect(() => {
     if (moodJournals.length > 0 && !analysisGenerated) {
       generateAIAnalysis(false);
     }
   }, [moodJournals, analysisGenerated]);
 
-  const handleRefreshAnalysis = () => {
+  const handleRefresh = () => {
     const cachedTimestamp = localStorage.getItem('mood_ai_timestamp');
     if (cachedTimestamp) {
       const now = Date.now();
       const age = now - parseInt(cachedTimestamp);
-      const cooldown = 15 * 60 * 1000; // 15 minutes
-
+      const cooldown = 15 * 60 * 1000;
       if (age < cooldown) {
-        const remainingMinutes = Math.ceil((cooldown - age) / 60000);
-        alert(`Analysis is fresh! You can regenerate in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`);
+        const remaining = Math.ceil((cooldown - age) / 60000);
+        alert(`Please wait ${remaining} minutes before regenerating.`);
         return;
       }
     }
-
-    // Proceed with refresh
-    setAnalysisGenerated(false);
-    setAiAnalysis('');
-    // We don't call generateAIAnalysis here. 
-    // Setting analysisGenerated(false) will trigger the useEffect, which calls generateAIAnalysis(false).
-    // But generateAIAnalysis(false) checks cache!
-    // So we need to ensure the next call forces it, OR we clear cache here.
-    // Clearing cache is safer.
     localStorage.removeItem('mood_ai_analysis');
     localStorage.removeItem('mood_ai_timestamp');
+    setAnalysisGenerated(false);
+    setAiAnalysis('');
+    generateAIAnalysis(true);
   };
 
-  const generateQuickInsights = () => {
-    const totalEntries = moodJournals.length;
-    const positiveEmotions = moodJournals.filter(j => ['joy', 'love', 'surprise'].includes(j.emotion)).length;
-    const positiveRatio = totalEntries > 0 ? (positiveEmotions / totalEntries * 100).toFixed(1) : 0;
-
-    const recentEntries = moodJournals.slice(0, 7);
-    const recentPositive = recentEntries.filter(j => ['joy', 'love', 'surprise'].includes(j.emotion)).length;
-    const trend = recentPositive >= recentEntries.length / 2 ? 'improving' : 'stable';
-
-    return { positiveRatio, trend };
+  const insights = {
+    positiveRatio: moodJournals.length > 0
+      ? ((moodJournals.filter(j => ['joy', 'love', 'surprise'].includes(j.emotion)).length / moodJournals.length) * 100).toFixed(0)
+      : 0,
+    entries: moodJournals.length
   };
-
-  const insights = generateQuickInsights();
 
   return (
-    <Card className="bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-slate-900/20 overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-300/5 to-slate-400/5 dark:from-slate-600/5 dark:to-slate-700/5"></div>
-      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-slate-300/10 to-slate-400/10 dark:from-slate-600/10 dark:to-slate-700/10 rounded-full -translate-y-20 translate-x-20 blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-br from-slate-300/8 to-slate-400/8 dark:from-slate-600/8 dark:to-slate-700/8 rounded-full translate-y-16 -translate-x-16 blur-3xl"></div>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="relative w-full overflow-hidden rounded-2xl bg-white dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl shadow-slate-200/20 dark:shadow-slate-900/40 transition-all duration-300">
 
-      <CardHeader className="relative z-10 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 text-white border-b border-slate-200/20 dark:border-slate-600/30">
-        <CardTitle className="flex items-center gap-4 text-2xl">
-          <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 dark:from-purple-600/20 dark:to-pink-600/20 rounded-xl backdrop-blur-sm border border-purple-300/30 dark:border-purple-500/30 shadow-lg">
-            <div className="relative">
-              <Brain className="w-8 h-8 text-purple-200 dark:text-purple-300" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full animate-pulse"></div>
+      {/* Subtle gradient accents */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-400/10 dark:bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-400/10 dark:bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+      {/* Header Section */}
+      <div className="relative z-10 p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-md border border-slate-200/80 dark:border-slate-700">
+              <EmotionalIntelligenceIcon size={32} className="text-indigo-500 dark:text-indigo-400 w-8 h-8" />
+            </div>
+            <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-900 animate-pulse" />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-poppins)' }}>AI Emotional Intelligence</h2>
+              <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] uppercase font-bold tracking-wider rounded-full shadow-md">
+                Premium Analysis
+              </span>
+            </div>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm sm:text-base" style={{ fontFamily: 'var(--font-inter)' }}>Deep learning insights from your {insights.entries} journal entries</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          {analysisGenerated && (
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              className="bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all"
+            >
+              <ArrowUpRight className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 relative z-10">
+
+        {/* Left Sidebar - Key Metrics */}
+        <div className="col-span-1 lg:col-span-4 p-6 sm:p-8 border-r border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-6" style={{ fontFamily: 'var(--font-inter)' }}>Vital Metrics</h3>
+
+          <div className="space-y-4">
+            {/* Metric 1 */}
+            <div className="p-4 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <Heart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Positivity Score</span>
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-black text-slate-900 dark:text-white">{insights.positiveRatio}%</span>
+                <span className="text-xs text-emerald-500 font-medium mb-1">Optimistic</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full mt-3 overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${insights.positiveRatio}%` }}></div>
+              </div>
+            </div>
+
+            {/* Metric 2 */}
+            <div className="p-4 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                  <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Peak Mood Time</span>
+              </div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-bold text-slate-900 dark:text-white">{peakTime.time}</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-2">You tend to be happiest in the {peakTime.time.toLowerCase()}</p>
+            </div>
+
+            {/* Metric 3 - Keywords */}
+            <div className="p-4 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Common Themes</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {keywords.map((word, i) => (
+                  <span key={i} className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs rounded-md font-medium">
+                    #{word}
+                  </span>
+                ))}
+                {keywords.length === 0 && <span className="text-xs text-slate-400">Not enough data yet</span>}
+              </div>
             </div>
           </div>
-          <div className="flex-1">
-            <div className="text-xl md:text-2xl font-bold text-white dark:text-slate-100">
-              Emotional Wellness Analysis for {profileName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'You'}
+        </div>
+
+        {/* Right Content - AI Analysis */}
+        <div className="col-span-1 lg:col-span-8 p-8 min-h-[400px]">
+          {loading ? (
+            <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-70">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 border-t-2 border-indigo-500 rounded-full animate-spin"></div>
+                <div className="absolute inset-2 border-r-2 border-purple-500 rounded-full animate-spin reverse"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <EmotionalIntelligenceIcon size={24} className="text-indigo-500 animate-pulse w-6 h-6" />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-slate-500 animate-pulse">Consulting Dr. AI...</p>
             </div>
-            <div className="text-sm md:text-base text-slate-200 dark:text-slate-300 opacity-90">Deep insights from your emotional journey</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <div className="text-xl md:text-2xl font-bold text-emerald-200 dark:text-emerald-300">{insights.positiveRatio}%</div>
-              <div className="text-xs text-slate-300 dark:text-slate-400">Positive</div>
+          ) : aiAnalysis ? (
+            <div className="prose prose-slate dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h2: ({ children }) => <h2 className="flex items-center gap-3 text-lg font-bold text-indigo-600 dark:text-indigo-400 mt-6 mb-4">{children}</h2>,
+                  ul: ({ children }) => <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4 list-none pl-0">{children}</ul>,
+                  li: ({ children }) => <li className="bg-white/40 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm text-sm flex items-start gap-2"><span className="text-indigo-500 mt-1">●</span><span>{children}</span></li>,
+                  strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-white bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">{children}</strong>,
+                  p: ({ children }) => <p className="text-slate-600 dark:text-slate-300 leading-relaxed mb-4">{children}</p>
+                }}
+              >
+                {aiAnalysis}
+              </ReactMarkdown>
             </div>
-            <div className="text-center">
-              <div className="text-xl md:text-2xl">{insights.trend === 'improving' ? '📈' : '🔄'}</div>
-              <div className="text-xs text-slate-300 dark:text-slate-400 capitalize">{insights.trend}</div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+              <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mb-4">
+                <EmotionalIntelligenceIcon size={40} className="text-indigo-500 w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Ready to Analyze</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">Generate a comprehensive personality and emotional analysis based on your recent journal entries.</p>
+              <Button onClick={() => generateAIAnalysis(false)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl shadow-lg shadow-indigo-500/20">
+                Start Analysis
+              </Button>
             </div>
-          </div>
-        </CardTitle>
-      </CardHeader>
+          )}
+        </div>
 
-      <CardContent className="relative z-10 p-8">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="flex flex-col items-center gap-6">
-              {/* Enhanced loading animation */}
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-slate-200/30 dark:border-slate-600/30 rounded-full"></div>
-                <div className="absolute top-0 left-0 w-20 h-20 border-4 border-transparent border-t-slate-500 border-r-slate-600 border-b-slate-700 rounded-full animate-spin"></div>
-                <div className="absolute top-2 left-2 w-16 h-16 border-4 border-transparent border-t-slate-400 border-r-slate-500 border-b-slate-600 rounded-full animate-spin animate-reverse"></div>
-                <div className="absolute top-6 left-6 w-8 h-8 bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-600 dark:to-slate-700 rounded-full flex items-center justify-center text-white text-xl animate-pulse">
-                  🧠
-                </div>
-              </div>
-
-              {/* Loading text with gradient */}
-              <div className="text-center space-y-3">
-                <div className="text-2xl font-bold text-slate-700 dark:text-slate-300">
-                  AI is analyzing your mood...
-                </div>
-                <div className="text-lg font-medium text-slate-600 dark:text-slate-400">
-                  🔍 Discovering your emotional patterns
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 max-w-md text-center leading-relaxed">
-                  Our advanced AI is carefully examining your emotional journey to provide deep, personalized insights
-                </div>
-              </div>
-
-              {/* Progress indicators */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-3 h-3 bg-slate-500 dark:bg-slate-400 rounded-full animate-pulse"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Processing {moodJournals.length} journal entries</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-3 h-3 bg-slate-600 dark:bg-slate-500 rounded-full animate-pulse animation-delay-200"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Analyzing emotional patterns</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="w-3 h-3 bg-slate-700 dark:bg-slate-600 rounded-full animate-pulse animation-delay-400"></div>
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">Generating personalized insights</span>
-                </div>
-              </div>
-
-              {/* Estimated time */}
-              <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-full">
-                ⏱️ Estimated time: 10-15 seconds
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-white/60 via-slate-50/40 to-white/60 dark:from-slate-800/60 dark:via-slate-700/40 dark:to-slate-800/60 backdrop-blur-lg rounded-2xl p-8 border border-slate-200/30 dark:border-slate-600/30 shadow-inner overflow-hidden relative">
-              {/* Background decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-slate-300/10 to-slate-400/10 dark:from-slate-600/10 dark:to-slate-700/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-slate-300/8 to-slate-400/8 dark:from-slate-600/8 dark:to-slate-700/8 rounded-full translate-y-12 -translate-x-12 blur-2xl"></div>
-
-              <div className="relative z-10">
-                <div className="flex items-start gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-slate-200 dark:border-slate-700">
-                      <span className="text-indigo-600 dark:text-indigo-400">✨</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="mb-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                          AI's Analysis
-                        </h3>
-                        <div className="px-3 py-1 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full text-white text-xs font-semibold shadow-md">
-                          ✨ PREMIUM AI
-                        </div>
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                        Personalized emotional wellness insights powered by advanced AI analysis
-                      </p>
-                    </div>
-
-                    <div className="prose prose-sm max-w-none 
-                      prose-headings:bg-gradient-to-r prose-headings:from-indigo-600 prose-headings:via-purple-600 prose-headings:to-pink-600 prose-headings:bg-clip-text prose-headings:text-transparent prose-headings:font-bold prose-headings:mb-4 prose-headings:text-lg
-                      prose-strong:text-indigo-700 dark:prose-strong:text-indigo-300 prose-strong:font-semibold prose-strong:bg-indigo-50 dark:prose-strong:bg-indigo-900/30 prose-strong:px-1 prose-strong:py-0.5 prose-strong:rounded
-                      prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-4
-                      prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-li:leading-relaxed prose-li:mb-2
-                      prose-ul:my-3 prose-ul:space-y-2 prose-ol:my-3 prose-ol:space-y-2
-                      prose-h2:text-xl prose-h2:border-b-2 prose-h2:border-gradient-to-r prose-h2:from-indigo-200 prose-h2:to-purple-200 dark:prose-h2:from-indigo-800 dark:prose-h2:to-purple-800 prose-h2:pb-3 prose-h2:mb-6
-                      prose-h3:text-lg prose-h3:mb-3 prose-h3:font-semibold
-                      prose-blockquote:border-l-4 prose-blockquote:border-indigo-400 prose-blockquote:bg-indigo-50/50 dark:prose-blockquote:bg-indigo-900/20 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-blockquote:my-4
-                      prose-code:bg-indigo-100 dark:prose-code:bg-indigo-900/50 prose-code:text-indigo-800 dark:prose-code:text-indigo-200 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:text-sm
-                      prose-hr:border-gradient-to-r prose-hr:from-indigo-200 prose-hr:via-purple-200 prose-hr:to-pink-200 prose-hr:border-2 prose-hr:my-6
-                      [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
-                      [&_em]:text-indigo-600 [&_em]:dark:text-indigo-400 [&_em]:font-medium [&_em]:not-italic
-                      [&_hr]:border-t-2 [&_hr]:border-gradient-to-r [&_hr]:from-indigo-200 [&_hr]:via-purple-200 [&_hr]:to-pink-200 [&_hr]:dark:from-indigo-800 [&_hr]:dark:via-purple-800 [&_hr]:dark:to-pink-800
-                      ">
-                      {aiAnalysis ? (
-                        <div className="space-y-4">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              h2: ({ children }) => (
-                                <h2 className="flex items-center gap-3 text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent border-b-2 border-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-800 dark:to-purple-800 pb-3 mb-6">
-                                  {children}
-                                </h2>
-                              ),
-                              hr: () => (
-                                <div className="my-6 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 dark:from-indigo-800 dark:via-purple-800 dark:to-pink-800 rounded-full opacity-60"></div>
-                              ),
-                              em: ({ children }) => (
-                                <em className="text-indigo-600 dark:text-indigo-400 font-medium not-italic bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md">
-                                  {children}
-                                </em>
-                              ),
-                              strong: ({ children }) => (
-                                <strong className="text-indigo-700 dark:text-indigo-300 font-semibold bg-indigo-100 dark:bg-indigo-900/50 px-2 py-1 rounded-md shadow-sm">
-                                  {children}
-                                </strong>
-                              ),
-                              ul: ({ children }) => (
-                                <ul className="space-y-3 my-4">
-                                  {children}
-                                </ul>
-                              ),
-                              li: ({ children }) => (
-                                <li className="flex items-start gap-3 p-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
-                                  <span className="text-indigo-500 mt-1">•</span>
-                                  <span className="flex-1">{children}</span>
-                                </li>
-                              )
-                            }}
-                          >
-                            {aiAnalysis}
-                          </ReactMarkdown>
-
-                          {/* Achievement badge */}
-                          <div className="mt-8 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                ✓
-                              </div>
-                              <div>
-                                <p className="font-semibold text-emerald-700 dark:text-emerald-300">Analysis Complete!</p>
-                                <p className="text-sm text-emerald-600 dark:text-emerald-400">Your emotional intelligence score has been updated based on this analysis.</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <div className="text-6xl mb-4">🎯</div>
-                          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium mb-2">
-                            Ready for Deep Insights?
-                          </p>
-                          <p className="text-gray-500 dark:text-gray-500 text-sm">
-                            Click "Generate Analysis" to unlock AI-powered insights about your emotional patterns and get personalized wellness recommendations.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {!analysisGenerated && !loading && (
-              <div className="text-center">
-                <Button
-                  onClick={generateAIAnalysis}
-                  className="bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 hover:from-slate-700 hover:via-slate-800 hover:to-slate-900 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 dark:hover:from-slate-600 dark:hover:via-slate-700 dark:hover:to-slate-800 text-white px-10 py-4 text-lg font-semibold rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300"
-                  disabled={loading || moodJournals.length === 0}
-                >
-                  <Brain className="w-6 h-6 mr-3" />
-                  Generate AI Analysis
-                  <Sparkles className="w-5 h-5 ml-2" />
-                </Button>
-                {moodJournals.length === 0 ? (
-                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">
-                      📝 Add some mood entries to unlock AI analysis
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-3 font-medium">
-                    ✨ Ready to discover insights from {moodJournals.length} mood entries
-                  </p>
-                )}
-              </div>
-            )}
-
-            {analysisGenerated && (
-              <div className="flex justify-center mt-6">
-                <Button
-                  onClick={() => {
-                    setAnalysisGenerated(false);
-                    setAiAnalysis('');
-                    generateAIAnalysis();
-                  }}
-                  variant="outline"
-                  className="text-indigo-600 border-2 border-indigo-300 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 dark:border-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-900/20 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300"
-                  disabled={loading}
-                >
-                  <Brain className="w-5 h-5 mr-2" />
-                  Refresh Analysis
-                  <ArrowUpRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </motion.div>
   );
 };
 
-const FloatingParticles = () => {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            background: `linear-gradient(45deg, ${['#60A5FA', '#A78BFA', '#F472B6', '#34D399', '#FBBF24'][i % 5]
-              }, ${['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B'][i % 5]
-              })`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -100, 0],
-            x: [0, Math.random() * 50 - 25, 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1, 0],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 2,
-            repeat: Infinity,
-            delay: Math.random() * 2,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-};
+
 
 const LoadingSkeleton = () => (
   <div className="space-y-8 animate-pulse">
@@ -863,6 +693,11 @@ const LoadingSkeleton = () => (
 );
 
 export default function MoodHistory() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+
+
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -871,6 +706,24 @@ export default function MoodHistory() {
   const [streak, setStreak] = useState<number>(0);
   const [analytics, setAnalytics] = useState<any>(null);
   const [profileName, setProfileName] = useState<string>("");
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        setIsScrolled(scrollContainerRef.current.scrollTop > 10);
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container && !loading) {
+      container.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [loading]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -1128,691 +981,253 @@ export default function MoodHistory() {
   return (
     <>
       <DashboardDock onSignOut={handleSignOut} />
-      <div className="min-h-screen px-4 pb-32 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-indigo-900/30 dark:to-purple-900/30 relative overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-transparent"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-yellow-200/30 to-orange-300/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-pink-200/30 to-purple-300/30 rounded-full blur-3xl"></div>
+      <div className="flex flex-col min-h-screen w-full bg-slate-50 dark:bg-slate-950 transition-colors relative overflow-y-auto">
+        {/* Professional Background Pattern */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Light mode grid */}
+          <div className="absolute inset-0 dark:hidden" style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(15 23 42 / 0.08) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(15 23 42 / 0.08) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0'
+          }}></div>
+          {/* Dark mode grid */}
+          <div className="absolute inset-0 hidden dark:block" style={{
+            backgroundImage: `
+              linear-gradient(to right, rgb(203 213 225 / 0.15) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(203 213 225 / 0.15) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0'
+          }}></div>
+        </div>
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/50 via-transparent to-slate-200/30 dark:from-slate-900/80 dark:via-slate-950 dark:to-slate-900/60 pointer-events-none"></div>
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <FloatingParticles />
+        <div className="relative z-10 w-full min-h-full flex flex-col items-center">
 
-          {/* Header */}
-          <motion.div
-            className="text-center mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+
+          {/* Scrolling Content Area */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 w-full overflow-y-auto overflow-x-hidden hide-scrollbar pb-32"
           >
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-relaxed pb-2">
-              Your Mood Journey ✨
-            </h1>
-            <p className="text-muted-foreground text-xl">
-              Discover patterns, insights, and growth in your emotional well-being
-            </p>
-          </motion.div>
+            {/* Sticky Header Section */}
+            <div className={`sticky top-0 z-50 transition-all duration-300 ease-in-out px-6 w-full ${isScrolled
+                ? 'py-4 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm'
+                : 'py-10 bg-transparent'
+              }`}>
+              <div className={`w-full max-w-[2000px] mx-auto flex flex-col transition-all duration-300 items-center text-center`}>
+                <h1
+                  className={`font-bold leading-tight text-slate-900 dark:text-slate-100 tracking-tight transition-all duration-300 ${isScrolled ? 'text-2xl' : 'text-4xl sm:text-5xl'
+                    }`}
+                  style={{ fontFamily: 'var(--font-poppins)' }}
+                >
+                  Mood History
+                </h1>
+                <p
+                  className={`text-slate-600 dark:text-slate-400 font-medium transition-all duration-300 overflow-hidden ${isScrolled ? 'h-0 opacity-0 mt-0 text-[0px]' : 'h-auto opacity-100 mt-3 text-lg'
+                    }`}
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                >
+                  Discover patterns and growth in your emotional well-being
+                </p>
+              </div>
+            </div>
 
-          {/* Quick Stats - 3 Cards Only */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
-          >
-            {/* Current Streak */}
-            <motion.div
-              whileHover={{ scale: 1.02, y: -8 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="group cursor-pointer"
-            >
-              <Card className="relative overflow-hidden h-48 bg-gradient-to-br from-orange-400 via-red-500 to-pink-600 dark:bg-gradient-to-br dark:from-slate-800 dark:via-slate-900 dark:to-black border-0 shadow-xl hover:shadow-2xl dark:shadow-orange-500/25 dark:hover:shadow-orange-500/40 transition-all duration-300">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-orange-500/20 dark:via-red-500/15 dark:to-pink-500/10 opacity-60"></div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-300/20 dark:from-yellow-400/30 to-transparent rounded-full transform translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-700"></div>
+            <div className="w-full max-w-[2000px] mx-auto px-6 space-y-10">
 
-                {/* Enhanced dark mode border glow */}
-                <div className="absolute inset-0 rounded-lg border border-transparent dark:border-orange-400/20 dark:shadow-inner dark:shadow-orange-500/10"></div>
+              {/* Streak Cards - Modern gradient cards */}
+              <MoodStreaks moodJournals={moodJournals} />
 
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-4 left-4 w-1 h-1 bg-yellow-300 dark:bg-yellow-400 rounded-full animate-ping"></div>
-                  <div className="absolute top-8 right-8 w-1.5 h-1.5 bg-orange-200 dark:bg-orange-300 rounded-full animate-pulse"></div>
-                  <div className="absolute bottom-6 left-6 w-1 h-1 bg-pink-200 dark:bg-pink-300 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
-                </div>
-
-                <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
-                  <div className="flex-1 space-y-2">
-                    <motion.p
-                      className="text-orange-100 dark:text-orange-200 text-sm font-medium tracking-wide"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 }}
-                    >
-                      Current Streak
-                    </motion.p>
-                    <motion.div
-                      className="flex items-baseline gap-1"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <span className="text-4xl font-black text-white dark:text-orange-50 drop-shadow-lg dark:drop-shadow-2xl">{streak}</span>
-                      <span className="text-base font-semibold text-orange-100 dark:text-orange-200">
-                        {streak === 1 ? 'day' : 'days'}
-                      </span>
-                    </motion.div>
-                    <p className="text-orange-200 dark:text-orange-300 text-xs font-medium tracking-wider">
-                      consecutive journaling
-                    </p>
-
-                    {/* Progress indicator */}
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-300 dark:bg-yellow-400 rounded-full animate-pulse shadow-lg dark:shadow-yellow-400/50"></div>
-                        <span className="text-xs text-orange-100 dark:text-orange-200 font-medium">
-                          {streak > 0 ? 'Keep it going!' : 'Start your streak today!'}
-                        </span>
+              {/* Quick Stats Grid - No duplicate streak; Total Entries, Most Frequent, Avg Score */}
+              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-3 gap-6 w-full">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }} whileHover={{ y: -2 }}>
+                  <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 hover:shadow-xl transition-all overflow-hidden">
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-xl mb-4 shadow-inner">
+                        <BookOpen className="w-6 h-6 text-blue-500 dark:text-blue-400" />
                       </div>
-                    </div>
-                  </div>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Total Entries</p>
+                      <h3 className="text-4xl font-black text-slate-900 dark:text-slate-100 mt-2" style={{ fontFamily: 'var(--font-poppins)' }}>{moodJournals.length} <span className="text-lg font-medium text-slate-400">entries</span></h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">all-time journal count</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                  <motion.div className="relative ml-4">
-                    <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">🔥</div>
-                    {streak > 0 && (
-                      <motion.div
-                        className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 dark:bg-yellow-500 rounded-full shadow-lg dark:shadow-yellow-500/60"
-                        animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
-                    )}
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Current Emotion */}
-            <motion.div
-              whileHover={{ scale: 1.02, y: -8 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="group cursor-pointer"
-            >
-              <Card className="relative overflow-hidden h-48 bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-700 dark:bg-gradient-to-br dark:from-slate-800 dark:via-slate-900 dark:to-black border-0 shadow-xl hover:shadow-2xl dark:shadow-purple-500/25 dark:hover:shadow-purple-500/40 transition-all duration-300">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-purple-500/20 dark:via-indigo-500/15 dark:to-blue-500/10 opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-300/15 dark:from-blue-400/25 to-transparent rounded-full transform -translate-x-20 translate-y-20 group-hover:scale-125 transition-transform duration-700"></div>
-
-                {/* Enhanced dark mode border glow */}
-                <div className="absolute inset-0 rounded-lg border border-transparent dark:border-purple-400/20 dark:shadow-inner dark:shadow-purple-500/10"></div>
-
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-6 right-4 w-1 h-1 bg-blue-200 dark:bg-blue-300 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                  <div className="absolute top-12 left-8 w-1.5 h-1.5 bg-purple-200 dark:bg-purple-300 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-                  <div className="absolute bottom-8 right-6 w-1 h-1 bg-indigo-200 dark:bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '2s' }}></div>
-                </div>
-
-                <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
-                  <div className="flex-1 space-y-2">
-                    <motion.p
-                      className="text-purple-100 dark:text-purple-200 text-sm font-medium tracking-wide"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.7 }}
-                    >
-                      Current Emotion
-                    </motion.p>
-                    <motion.div
-                      className="space-y-1"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <span className="text-2xl font-black text-white dark:text-purple-50 drop-shadow-lg dark:drop-shadow-2xl capitalize block">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }} whileHover={{ y: -2 }}>
+                  <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 hover:shadow-xl transition-all overflow-hidden">
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-xl mb-4 shadow-inner">
+                        <EmotionalIntelligenceIcon size={24} className="text-purple-500 dark:text-purple-400 w-6 h-6" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Most Frequent</p>
+                      <h3 className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-2 capitalize flex items-center gap-2" style={{ fontFamily: 'var(--font-poppins)' }}>
                         {analytics.mostCommonEmotion?.emotion || 'Balanced'}
-                      </span>
-                    </motion.div>
-                    <p className="text-purple-200 dark:text-purple-300 text-xs font-medium tracking-wider">
-                      most frequent this week
-                    </p>
+                        <span className="text-2xl">{emotionEmojis[analytics.mostCommonEmotion?.emotion as keyof typeof emotionEmojis]}</span>
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{analytics.mostCommonEmotion?.count || 0} entries this month</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-                    {/* Emotion strength indicator */}
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <div
-                              key={i}
-                              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i < (analytics.mostCommonEmotion?.count || 0) / 2
-                                  ? 'bg-yellow-300 dark:bg-yellow-400 shadow-sm dark:shadow-yellow-400/50'
-                                  : 'bg-white/30 dark:bg-white/20'
-                                }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-purple-100 dark:text-purple-200 font-medium">
-                          {analytics.mostCommonEmotion?.count || 0} entries
-                        </span>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }} whileHover={{ y: -2 }}>
+                  <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 hover:shadow-xl transition-all overflow-hidden">
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl mb-4 shadow-inner">
+                        <Activity className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
                       </div>
-                    </div>
-                  </div>
-
-                  <motion.div className="relative ml-4">
-                    <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">
-                      {emotionEmojis[analytics.mostCommonEmotion?.emotion as keyof typeof emotionEmojis] || '🎭'}
-                    </div>
-                    <motion.div
-                      className="absolute inset-0 rounded-full bg-white/20 dark:bg-white/10"
-                      animate={{ scale: [1, 1.3, 1], opacity: [0, 0.3, 0] }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                    />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Mood Score */}
-            <motion.div
-              whileHover={{ scale: 1.02, y: -8 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="group cursor-pointer"
-            >
-              <Card className="relative overflow-hidden h-48 bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 dark:bg-gradient-to-br dark:from-slate-800 dark:via-slate-900 dark:to-black border-0 shadow-xl hover:shadow-2xl dark:shadow-emerald-500/25 dark:hover:shadow-emerald-500/40 transition-all duration-300">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/15 dark:to-cyan-500/10 opacity-60"></div>
-                <div className="absolute top-0 left-0 w-36 h-36 bg-gradient-to-br from-cyan-300/15 dark:from-cyan-400/25 to-transparent rounded-full transform -translate-x-18 -translate-y-18 group-hover:scale-150 transition-transform duration-700"></div>
-
-                {/* Enhanced dark mode border glow */}
-                <div className="absolute inset-0 rounded-lg border border-transparent dark:border-emerald-400/20 dark:shadow-inner dark:shadow-emerald-500/10"></div>
-
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-8 left-6 w-1 h-1 bg-cyan-200 dark:bg-cyan-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-                  <div className="absolute top-4 right-8 w-1.5 h-1.5 bg-emerald-200 dark:bg-emerald-300 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-                  <div className="absolute bottom-4 left-8 w-1 h-1 bg-teal-200 dark:bg-teal-300 rounded-full animate-bounce" style={{ animationDelay: '1.5s' }}></div>
-                </div>
-
-                <CardContent className="p-6 relative z-10 h-full flex items-center justify-between">
-                  <div className="flex-1 space-y-2">
-                    <motion.p
-                      className="text-emerald-100 dark:text-emerald-200 text-sm font-medium tracking-wide"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.9 }}
-                    >
-                      Mood Score
-                    </motion.p>
-                    <motion.div
-                      className="flex items-baseline gap-1"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <span className="text-4xl font-black text-white dark:text-emerald-50 drop-shadow-lg dark:drop-shadow-2xl">
-                        {analytics.avgMoodScore ? analytics.avgMoodScore.toFixed(1) : '0.0'}
-                      </span>
-                      <span className="text-base font-semibold text-emerald-100 dark:text-emerald-200">
-                        /5.0
-                      </span>
-                    </motion.div>
-                    <p className="text-emerald-200 dark:text-emerald-300 text-xs font-medium tracking-wider">
-                      average this month
-                    </p>
-
-                    {/* Progress bar */}
-                    <div className="mt-2 space-y-1">
-                      <div className="w-full bg-white/20 dark:bg-white/10 rounded-full h-2 overflow-hidden shadow-inner dark:shadow-emerald-900/50">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-yellow-300 to-emerald-300 dark:from-yellow-400 dark:to-emerald-400 rounded-full shadow-sm dark:shadow-emerald-400/50"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${((analytics.avgMoodScore || 0) / 5) * 100}%` }}
-                          transition={{ duration: 1.5, delay: 1.2, ease: "easeOut" }}
-                        />
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>Avg Mood Score</p>
+                      <h3 className="text-4xl font-black text-slate-900 dark:text-slate-100 mt-2" style={{ fontFamily: 'var(--font-poppins)' }}>{analytics.avgMoodScore?.toFixed(1) || '0.0'} <span className="text-lg font-medium text-slate-400">/ 5.0</span></h3>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full mt-3 overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, (analytics.avgMoodScore / 5) * 100)}%` }} transition={{ duration: 0.8, ease: "easeOut" }} className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-emerald-100 dark:text-emerald-200 font-medium">
-                          {analytics.avgMoodScore >= 4 ? 'Excellent! 🌟' :
-                            analytics.avgMoodScore >= 3 ? 'Good progress 👍' :
-                              analytics.avgMoodScore >= 2 ? 'Building up 💪' :
-                                'New beginning 🌱'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <motion.div className="relative ml-4">
-                    <div className="text-5xl filter drop-shadow-lg dark:drop-shadow-2xl dark:brightness-110">🌟</div>
-                    <motion.div
-                      className="absolute -inset-2 rounded-full border-2 border-white/30 dark:border-white/20 shadow-lg dark:shadow-emerald-500/30"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                    />
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Mood Trend Chart */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              whileHover={{ scale: 1.02, y: -4 }}
-              className="group"
-            >
-              <Card className="h-[420px] relative overflow-hidden bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 dark:bg-gradient-to-br dark:from-slate-800 dark:via-slate-900 dark:to-black border-0 shadow-xl hover:shadow-2xl dark:shadow-blue-500/20 dark:hover:shadow-blue-500/30 transition-all duration-300">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-blue-500/15 dark:via-indigo-500/10 dark:to-purple-500/5 opacity-60"></div>
-                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-300/20 dark:from-blue-400/25 to-transparent rounded-full transform translate-x-20 -translate-y-20 group-hover:scale-125 transition-transform duration-700"></div>
-
-                {/* Enhanced dark mode border glow */}
-                <div className="absolute inset-0 rounded-lg border border-transparent dark:border-blue-400/20 dark:shadow-inner dark:shadow-blue-500/10"></div>
-
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-6 left-8 w-1 h-1 bg-blue-200 dark:bg-blue-300 rounded-full animate-ping"></div>
-                  <div className="absolute top-16 right-12 w-1.5 h-1.5 bg-indigo-200 dark:bg-indigo-300 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-                  <div className="absolute bottom-8 left-12 w-1 h-1 bg-purple-200 dark:bg-purple-300 rounded-full animate-bounce" style={{ animationDelay: '2s' }}></div>
-                </div>
-
-                <CardHeader className="relative z-10 bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-purple-600/90 dark:from-slate-700/95 dark:via-slate-800/95 dark:to-slate-900/95 text-white border-b border-white/10 dark:border-slate-600/30">
-                  <CardTitle className="flex items-center gap-4">
-                    <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 dark:border-white/10">
-                      <TrendingUp className="w-6 h-6 text-blue-100 dark:text-blue-300" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xl font-bold text-white dark:text-slate-100">14-Day Mood Journey</div>
-                      <div className="text-sm text-blue-100 dark:text-slate-300 opacity-90">Track your emotional patterns over time</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-white dark:text-slate-100">
-                        {analytics.dailyTrend.filter((d: any) => d.mood !== null).length}
-                      </div>
-                      <div className="text-xs text-blue-200 dark:text-slate-400">active days</div>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="relative z-10 p-6 bg-gradient-to-br from-white/80 via-blue-50/60 to-indigo-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-slate-800/80 backdrop-blur-sm">
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={analytics.dailyTrend.filter((d: any) => d.mood !== null)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-600" />
-                        <XAxis
-                          dataKey="date"
-                          className="text-xs text-slate-600 dark:text-slate-400"
-                          tick={{ fontSize: 12, fill: 'currentColor' }}
-                        />
-                        <YAxis
-                          domain={[0, 5]}
-                          className="text-xs text-slate-600 dark:text-slate-400"
-                          tick={{ fontSize: 12, fill: 'currentColor' }}
-                        />
-                        <Tooltip
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl">
-                                  <p className="font-semibold text-slate-800 dark:text-slate-200">{label}</p>
-                                  <p className="text-blue-600 dark:text-blue-400 font-medium">
-                                    Mood Score: {payload[0].value?.toFixed(1)}
-                                  </p>
-                                  <p className="text-sm text-slate-600 dark:text-slate-400">{data.entries} entries</p>
-                                  {data.dominantEmotion && (
-                                    <p className="text-sm font-medium mt-1">
-                                      {emotionEmojis[data.dominantEmotion as keyof typeof emotionEmojis]} {data.dominantEmotion}
-                                    </p>
-                                  )}
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="mood"
-                          stroke="#3B82F6"
-                          fill="url(#colorMood)"
-                          strokeWidth={3}
-                          dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
-                        />
-                        <defs>
-                          <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1} />
-                          </linearGradient>
-                        </defs>
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Emotion Distribution */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              whileHover={{ scale: 1.02, y: -4 }}
-              className="group"
-            >
-              <Card className="h-[420px] relative overflow-hidden bg-gradient-to-br from-purple-500 via-pink-500 to-rose-600 dark:bg-gradient-to-br dark:from-slate-800 dark:via-slate-900 dark:to-black border-0 shadow-xl hover:shadow-2xl dark:shadow-purple-500/20 dark:hover:shadow-purple-500/30 transition-all duration-300">
-                {/* Animated background effects */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent dark:from-purple-500/15 dark:via-pink-500/10 dark:to-rose-500/5 opacity-60"></div>
-                <div className="absolute bottom-0 left-0 w-44 h-44 bg-gradient-to-tr from-pink-300/20 dark:from-pink-400/25 to-transparent rounded-full transform -translate-x-22 translate-y-22 group-hover:scale-125 transition-transform duration-700"></div>
-
-                {/* Enhanced dark mode border glow */}
-                <div className="absolute inset-0 rounded-lg border border-transparent dark:border-purple-400/20 dark:shadow-inner dark:shadow-purple-500/10"></div>
-
-                {/* Floating particles effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute top-8 right-6 w-1 h-1 bg-purple-200 dark:bg-purple-300 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                  <div className="absolute top-20 left-10 w-1.5 h-1.5 bg-pink-200 dark:bg-pink-300 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-                  <div className="absolute bottom-12 right-8 w-1 h-1 bg-rose-200 dark:bg-rose-300 rounded-full animate-bounce" style={{ animationDelay: '2.5s' }}></div>
-                </div>
-
-                <CardHeader className="relative z-10 bg-gradient-to-r from-purple-600/90 via-pink-600/90 to-rose-600/90 dark:from-slate-700/95 dark:via-slate-800/95 dark:to-slate-900/95 text-white border-b border-white/10 dark:border-slate-600/30">
-                  <CardTitle className="flex items-center gap-4">
-                    <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 dark:border-white/10">
-                      <PieChart className="w-6 h-6 text-purple-100 dark:text-purple-300" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xl font-bold text-white dark:text-slate-100">Emotion Distribution</div>
-                      <div className="text-sm text-purple-100 dark:text-slate-300 opacity-90">Your emotional spectrum (30 days)</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-white dark:text-slate-100">
-                        {analytics.emotionDistribution.length}
-                      </div>
-                      <div className="text-xs text-purple-200 dark:text-slate-400">emotions</div>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="relative z-10 p-6 bg-gradient-to-br from-white/80 via-purple-50/60 to-pink-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-slate-800/80 backdrop-blur-sm">
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
-                        <Pie
-                          data={analytics.emotionDistribution}
-                          cx="50%"
-                          cy="45%"
-                          innerRadius={50}
-                          outerRadius={110}
-                          paddingAngle={3}
-                          dataKey="count"
-                        >
-                          {analytics.emotionDistribution.map((entry: any, index: number) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={emotionColors[entry.emotion as keyof typeof emotionColors] || '#8884d8'}
-                              stroke="rgba(255,255,255,0.8)"
-                              strokeWidth={2}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-4 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl">
-                                  <p className="font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                                    {emotionEmojis[data.emotion as keyof typeof emotionEmojis]}
-                                    <span className="capitalize">{data.emotion}</span>
-                                  </p>
-                                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                    {data.count} entries ({data.percentage}%)
-                                  </p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend
-                          content={({ payload }) => (
-                            <div className="flex flex-wrap gap-3 justify-center mt-4">
-                              {payload?.map((entry, index) => (
-                                <div key={index} className="flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-slate-700/70 rounded-full text-xs font-medium backdrop-blur-sm border border-slate-200/50 dark:border-slate-600/50">
-                                  <div
-                                    className="w-3 h-3 rounded-full shadow-sm"
-                                    style={{ backgroundColor: entry.color }}
-                                  />
-                                  <span className="capitalize text-slate-700 dark:text-slate-300">
-                                    {(entry.payload as any)?.emotion}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-
-          {/* AI Analysis Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="mb-8"
-          >
-            <AIAnalysisCard moodJournals={moodJournals} analytics={analytics} user={user} profileName={profileName} />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="mb-8"
-          >
-            <Card className="bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 dark:from-slate-900 dark:via-slate-800 dark:to-emerald-900 border-0 shadow-2xl overflow-hidden">
-              {/* Floating Particles */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-6 left-8 w-1 h-1 bg-emerald-200 dark:bg-emerald-300 rounded-full animate-ping"></div>
-                <div className="absolute top-16 right-12 w-1.5 h-1.5 bg-teal-200 dark:bg-teal-300 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute bottom-8 left-12 w-1 h-1 bg-green-200 dark:bg-green-300 rounded-full animate-bounce" style={{ animationDelay: '2s' }}></div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </div>
 
-              <CardHeader className="relative z-10 bg-gradient-to-r from-emerald-600/90 via-teal-600/90 to-green-600/90 dark:from-slate-700/95 dark:via-slate-800/95 dark:to-slate-900/95 text-white border-b border-white/10 dark:border-slate-600/30">
-                <CardTitle className="flex items-center gap-4">
-                  <div className="p-3 bg-white/20 dark:bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 dark:border-white/10">
-                    <BarChart3 className="w-6 h-6 text-emerald-100 dark:text-emerald-300" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xl font-bold text-white dark:text-slate-100">6-Month Emotional Journey</div>
-                    <div className="text-sm text-emerald-100 dark:text-slate-300 opacity-90">Your emotional patterns over the past 6 months</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-white dark:text-slate-100">
-                      {analytics.monthlyData.reduce((sum: number, month: any) => sum + month.total, 0)}
-                    </div>
-                    <div className="text-xs text-emerald-200 dark:text-slate-400">total entries</div>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 p-6 bg-gradient-to-br from-white/80 via-emerald-50/60 to-teal-50/80 dark:from-slate-800/80 dark:via-slate-700/60 dark:to-slate-800/80 backdrop-blur-sm">
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analytics.monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-slate-600" />
-                      <XAxis
-                        dataKey="month"
-                        className="text-xs text-slate-600 dark:text-slate-400"
-                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                      />
-                      <YAxis
-                        className="text-xs text-slate-600 dark:text-slate-400"
-                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                      />
-                      <Tooltip
-                        cursor={false}
-                        content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            const validPayload = payload.filter(item => item.value && item.value > 0);
-                            if (validPayload.length === 0) return null;
-
-                            const total = validPayload.reduce((sum, item) => sum + (item.value || 0), 0);
-                            return (
-                              <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-3 border border-slate-200 dark:border-slate-600 rounded-lg shadow-xl">
-                                <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{label}</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">Total: {total} entries</p>
-                                <div className="space-y-1">
-                                  {validPayload.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                      <div
-                                        className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: item.color }}
-                                      />
-                                      <span className="text-xs capitalize text-slate-700 dark:text-slate-300">
-                                        {emotionEmojis[item.dataKey as keyof typeof emotionEmojis]} {item.dataKey}: {item.value}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Legend
-                        content={({ payload }) => (
-                          <div className="flex flex-wrap gap-3 justify-center mt-4">
-                            {payload?.map((entry, index) => (
-                              <div key={index} className="flex items-center gap-2 px-3 py-1 bg-white/70 dark:bg-slate-700/70 rounded-full text-xs font-medium backdrop-blur-sm border border-slate-200/50 dark:border-slate-600/50">
-                                <div
-                                  className="w-3 h-3 rounded-full shadow-sm"
-                                  style={{ backgroundColor: entry.color }}
-                                />
-                                <span className="capitalize text-slate-700 dark:text-slate-300">
-                                  {emotionEmojis[entry.value as keyof typeof emotionEmojis]} {entry.value}
-                                </span>
-                              </div>
-                            ))}
+              {/* Charts Grid - Modern cards with gradients */}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+                  <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/30 dark:to-transparent">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'var(--font-poppins)' }}>
+                        <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                          <TrendingUp className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                        </div>
+                        14-Day Mood Journey
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="h-80">
+                        {analytics.dailyTrend.filter((d: any) => d.mood != null).length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={analytics.dailyTrend} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
+                              <defs>
+                                <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.5} />
+                                  <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.05} />
+                                </linearGradient>
+                              </defs>
+                              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                              <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid rgb(226 232 240)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'var(--font-inter)' }} formatter={(value: number) => [value != null ? value.toFixed(1) : '—', 'Mood (1–5)']} labelStyle={{ fontFamily: 'var(--font-inter)' }} />
+                              <Area type="monotone" dataKey="mood" name="Mood" stroke="#3B82F6" strokeWidth={2.5} fill="url(#colorMood)" connectNulls />
+                              <Line type="monotone" dataKey="mood" stroke="#2563eb" strokeWidth={2} dot={{ fill: '#3B82F6', strokeWidth: 0, r: 4 }} activeDot={{ r: 6 }} connectNulls />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                            <TrendingUp className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400" style={{ fontFamily: 'var(--font-inter)' }}>Not enough data yet</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[240px]">Journal on a few days in the last 14 days to see your mood journey here.</p>
                           </div>
                         )}
-                      />
-                      {Object.keys(emotionColors).map((emotion) => (
-                        <Bar
-                          key={emotion}
-                          dataKey={emotion}
-                          stackId="emotions"
-                          fill={emotionColors[emotion as keyof typeof emotionColors]}
-                          name={emotion}
-                        />
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-          {/* Insights Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
-                  <Brain className="w-5 h-5" />
-                  Writing Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Avg words per entry:</span>
-                    <span className="font-semibold">{analytics.avgWordsPerEntry}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Most productive day:</span>
-                    <span className="font-semibold">
-                      {analytics.dailyTrend.reduce((max: any, day: any) =>
-                        day.entries > max.entries ? day : max, { entries: 0, date: 'None' }
-                      ).date}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total words written:</span>
-                    <span className="font-semibold">
-                      {moodJournals.reduce((sum, j) => sum + (j.text?.split(' ').length || 0), 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
+                  <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 overflow-hidden">
+                    <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/30 dark:to-transparent">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'var(--font-poppins)' }}>
+                        <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
+                          <PieChart className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                        </div>
+                        Emotion Spectrum
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="h-80">
+                        {analytics.emotionDistribution && analytics.emotionDistribution.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                              <Pie
+                                data={analytics.emotionDistribution}
+                                cx="50%"
+                                cy="45%"
+                                innerRadius={58}
+                                outerRadius={92}
+                                paddingAngle={3}
+                                dataKey="count"
+                                nameKey="emotion"
+                                stroke="rgba(255,255,255,0.9)"
+                                strokeWidth={2}
+                                label={({ name, percent }) => `${name}: ${(percent ?? 0).toFixed(0)}%`}
+                                labelLine={{ stroke: '#64748b', strokeWidth: 1 }}
+                              >
+                                {analytics.emotionDistribution.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={emotionColors[entry.emotion as keyof typeof emotionColors] || '#8884d8'} />
+                                ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid rgb(226 232 240)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'var(--font-inter)' }} formatter={(value: number, name: string, props: any) => [`${value} entries (${(props.payload?.percent ?? 0).toFixed(0)}%)`, name]} />
+                              <Legend verticalAlign="bottom" height={40} wrapperStyle={{ fontFamily: 'var(--font-inter)' }} formatter={(value, entry: any) => <span className="text-slate-600 dark:text-slate-300 capitalize">{value} · {entry.payload?.count ?? 0}</span>} />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                            <PieChart className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400" style={{ fontFamily: 'var(--font-inter)' }}>Not enough data yet</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[240px]">Add journal entries with detected emotions to see your emotion spectrum here.</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
 
-            <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-pink-700 dark:text-pink-300">
-                  <Heart className="w-5 h-5" />
-                  Emotional Growth
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Days journaling:</span>
-                    <span className="font-semibold">
-                      {new Set(moodJournals.map(j => j.created_at.split('T')[0])).size}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Longest streak:</span>
-                    <span className="font-semibold">{streak} days</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Current momentum:</span>
-                    <span className="font-semibold text-green-600">
-                      {analytics.weeklyEntries >= 3 ? 'Strong 💪' : analytics.weeklyEntries >= 1 ? 'Building 🌱' : 'Starting 🌟'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Year Mood Heatmap */}
+              <MoodHeatmap moodJournals={moodJournals} />
 
-            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                  <Activity className="w-5 h-5" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => router.push('/dashboard')}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  size="sm"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  New Journal Entry
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  size="sm"
-                  onClick={() => router.push('/dashboard/profile')}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Update Preferences
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+              {/* AI Analysis Card */}
+              <div className="mb-8 w-full">
+                <AIAnalysisCard moodJournals={moodJournals} analytics={analytics} user={user} profileName={profileName} />
+              </div>
+
+              {/* 6 Month Journey - Stacked bar chart */}
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
+                <Card className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-lg shadow-slate-200/10 dark:shadow-slate-900/30 overflow-hidden w-full">
+                  <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/30 dark:to-transparent">
+                    <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: 'var(--font-poppins)' }}>
+                      <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
+                        <BarChart3 className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                      </div>
+                      6-Month History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="h-80">
+                      {analytics.monthlyData && analytics.monthlyData.some((m: any) => (m.total ?? 0) > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={analytics.monthlyData} margin={{ top: 16, right: 16, left: 8, bottom: 8 }} barCategoryGap="16%" barGap={4}>
+                            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} />
+                            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} contentStyle={{ borderRadius: '12px', border: '1px solid rgb(226 232 240)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontFamily: 'var(--font-inter)' }} />
+                            <Legend wrapperStyle={{ fontFamily: 'var(--font-inter)' }} />
+                            {Object.keys(emotionColors).map((emotion) => (
+                              <Bar key={emotion} dataKey={emotion} stackId="a" fill={emotionColors[emotion as keyof typeof emotionColors]} radius={[4, 4, 0, 0]} name={emotion} />
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                          <BarChart3 className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
+                          <p className="text-sm font-medium text-slate-600 dark:text-slate-400" style={{ fontFamily: 'var(--font-inter)' }}>Not enough data yet</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 max-w-[240px]">Journal over the last 6 months to see your monthly history here.</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+            </div>
+          </div>
         </div>
       </div>
     </>

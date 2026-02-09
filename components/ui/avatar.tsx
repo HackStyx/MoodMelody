@@ -59,13 +59,13 @@ export function Avatar({
   const showFallback = !src || imageError || !imageLoaded;
 
   return (
-    <div className={`relative ${sizeClasses[size]} ${className}`} style={style}>
+    <div className={`relative rounded-full overflow-hidden ${sizeClasses[size]} ${className}`} style={style}>
       {/* Image */}
       {src && !imageError && (
         <img
           src={src}
           alt={alt}
-          className={`absolute inset-0 w-full h-full rounded-full object-cover border-4 border-white shadow-xl bg-white transition-opacity duration-300 ${
+          className={`absolute inset-0 w-full h-full rounded-full object-cover shadow-lg bg-white transition-opacity duration-300 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           onError={handleImageError}
@@ -74,7 +74,7 @@ export function Avatar({
       )}
       
       {/* Fallback */}
-      <div className={`absolute inset-0 w-full h-full rounded-full border-4 border-white shadow-xl bg-gradient-to-br from-indigo-400 via-pink-400 to-yellow-300 flex items-center justify-center text-white font-bold transition-opacity duration-300 ${
+      <div className={`absolute inset-0 w-full h-full rounded-full shadow-lg bg-gradient-to-br from-indigo-400 via-pink-400 to-yellow-300 flex items-center justify-center text-white font-bold transition-opacity duration-300 ${
         showFallback ? 'opacity-100' : 'opacity-0'
       }`}>
         {initials}

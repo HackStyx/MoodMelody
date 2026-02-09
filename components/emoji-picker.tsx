@@ -56,7 +56,6 @@ export function EmojiPicker({ onEmojiSelect, selectedEmoji }: EmojiPickerProps) 
           <DialogDescription className="text-center mb-4">
             Select an emoji that best represents how you're feeling right now.
           </DialogDescription>
-          <div className="text-3xl font-bold mb-4 text-center">Pick your mood</div>
           <div className="grid grid-cols-6 gap-3 mb-4 w-full">
             {FACE_EMOJIS.map((item) => (
               <button
