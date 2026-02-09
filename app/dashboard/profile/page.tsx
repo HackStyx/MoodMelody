@@ -196,12 +196,12 @@ export default function Profile() {
         return;
       }
       setUser(userData.user);
-      const { data, err } = await supabase
+      const { data, error: profileError } = await supabase
         .from("profiles")
         .select("name, place, about, gender, age_range, language, music_prefs")
         .eq("id", userData.user.id)
         .single();
-      if (err && err.code !== "PGRST116") {
+      if (profileError && profileError.code !== "PGRST116") {
         setError("Failed to load profile");
       } else if (data) {
         setName(data.name || "");
@@ -246,7 +246,7 @@ export default function Profile() {
     setLoading(true);
     setError(null);
     if (!user) return;
-    const { error: err } = await supabase.from("profiles").upsert({
+    const { error: upsertError } = await supabase.from("profiles").upsert({
       id: user.id,
       name,
       place,
@@ -256,7 +256,7 @@ export default function Profile() {
       language,
       music_prefs: musicPrefs,
     });
-    if (err) setError("Failed to save profile");
+    if (upsertError) setError("Failed to save profile");
     else setShowEdit(false);
     setLoading(false);
   }
