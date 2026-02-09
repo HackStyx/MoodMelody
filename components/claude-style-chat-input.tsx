@@ -51,6 +51,12 @@ interface AttachedFile {
     content?: string;
 }
 
+export interface PastedSnippet {
+    id: string;
+    content: string;
+    timestamp: Date;
+}
+
 interface FilePreviewCardProps {
     file: AttachedFile;
     onRemove: (id: string) => void;
@@ -241,7 +247,7 @@ interface ClaudeChatInputProps {
     onSendMessage: (data: {
         message: string;
         files: AttachedFile[];
-        pastedContent: AttachedFile[];
+        pastedContent: PastedSnippet[];
         model: string;
         isThinkingEnabled: boolean
     }) => void;
@@ -258,7 +264,7 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
 }) => {
     const [message, setMessage] = useState("");
     const [files, setFiles] = useState<AttachedFile[]>([]);
-    const [pastedContent, setPastedContent] = useState<AttachedFile[]>([]);
+    const [pastedContent, setPastedContent] = useState<PastedSnippet[]>([]);
     const [isDragging, setIsDragging] = useState(false);
     const [selectedModel, setSelectedModel] = useState("sonnet-4.5");
     const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
@@ -359,7 +365,7 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
 
     const handleSend = () => {
         if (!message.trim() && files.length === 0 && pastedContent.length === 0) return;
-        onSendMessage({ message, files, pastedContent, model: selectedModel });
+        onSendMessage({ message, files, pastedContent, model: selectedModel, isThinkingEnabled: isThinkingEnabled });
         setMessage("");
         setFiles([]);
         setPastedContent([]);
@@ -422,10 +428,9 @@ export const ClaudeChatInput: React.FC<ClaudeChatInputProps> = ({
                                 onKeyDown={handleKeyDown}
                                 placeholder={placeholder}
                                 className="w-full bg-transparent border-0 outline-none text-slate-900 dark:text-slate-100 text-[16px] placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none overflow-hidden py-2 px-1 leading-relaxed block font-normal antialiased"
-                                style={{ fontFamily: 'var(--font-inter)' }}
+                                style={{ fontFamily: 'var(--font-inter)', minHeight: '1.5em' }}
                                 rows={1}
                                 autoFocus
-                                style={{ minHeight: '1.5em' }}
                             />
                         </div>
                     </div>
