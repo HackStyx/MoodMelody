@@ -33,12 +33,13 @@
 <td width="50%" valign="top">
 
 ### 🧠 **AI-Powered Emotion Detection**
-> *95% accuracy with cutting-edge AI*
+> *Accurate emotion analysis with cutting-edge AI*
 
-🎯 **OpenRouter + Mistral AI** - Industry-leading emotion analysis  
-🌍 **7 Languages Supported** - Global emotional understanding  
-⚡ **Real-time Processing** - Instant mood detection as you type  
-🎨 **Confidence Scoring** - Know how certain the AI is about your mood  
+🎯 **Google Gemini** - Primary emotion detection with fallback keys for reliability  
+🌍 **Multi-language support** - Broader emotional understanding  
+⚡ **Real-time processing** - Instant mood detection as you type  
+🎨 **Confidence scoring** - Know how certain the AI is about your mood  
+🔄 **Keyword fallback** - Enhanced local detection when API is unavailable  
 
 </td>
 <td width="50%" valign="top">
@@ -70,10 +71,11 @@
 ### ✨ **Magical User Experience**
 > *Designed to delight, built to perform*
 
-🎨 **Glassmorphism UI** - Modern, beautiful, and intuitive  
+🎨 **Modern UI** - Dark glass-style modals, clean layouts, no-scroll premium popup  
 📱 **PWA Ready** - Install like a native app  
 🌙 **Dark/Light Themes** - Adapts to your preference  
 ⚡ **Lightning Fast** - Optimized for speed and performance  
+🏠 **Landing & Pricing** - Get Started flow with Premium “Coming Soon” experience  
 
 </td>
 </tr>
@@ -124,9 +126,8 @@
 
 ### 🤖 **AI & Backend Power**
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![OpenRouter](https://img.shields.io/badge/OpenRouter-FF6B6B?style=for-the-badge&logo=openai&logoColor=white)](https://openrouter.ai/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Spotify API](https://img.shields.io/badge/Spotify_API-1DB954?style=for-the-badge&logo=spotify&logoColor=white)](https://developer.spotify.com/)
-[![Hugging Face](https://img.shields.io/badge/Hugging_Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/)
 
 
 </td>
@@ -153,12 +154,12 @@
 graph TB
     A[🌐 User Interface] --> B[⚛️ Next.js 15 App Router]
     B --> C[🔐 Supabase Auth]
-    B --> D[🤖 OpenRouter AI]
+    B --> D[🤖 Google Gemini AI]
     B --> E[🎵 Spotify API]
     B --> F[💾 Supabase Database]
     
     C --> G[👤 Google OAuth]
-    D --> H[🧠 Mistral Small 24B]
+    D --> H[🧠 Emotion Detection]
     E --> I[🎧 Music Recommendations]
     F --> J[📊 Mood Analytics]
     
@@ -177,11 +178,12 @@ graph TB
 
 ## 🚀 Quick Start
 
-### **1. Clone the Repository**
+### **1. Clone the repository**
 ```bash
 git clone https://github.com/HackStyx/MoodMelody.git
 cd MoodMelody
 ```
+*(If the app lives in a subfolder such as `mood-app`, run `cd mood-app` after cloning.)*
 
 ### **2. Install Dependencies**
 ```bash
@@ -189,16 +191,16 @@ npm install
 ```
 
 ### **3. Environment Setup**
-Create a `.env.local` file with your API keys:
+Create a `.env.local` file in the project root with your API keys:
 
 ```env
-# Supabase Configuration
+# Supabase (Auth & Database)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# AI Emotion Detection
-OPENROUTER_API_KEY=your_openrouter_api_key
-HUGGINGFACE_API_KEY=your_huggingface_api_key
+# AI Emotion Detection (Google Gemini — primary + optional fallback)
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_FALLBACK_API_KEY=your_gemini_fallback_key
 
 # Spotify Music Recommendations
 SPOTIFY_CLIENT_ID=your_spotify_client_id
@@ -206,9 +208,11 @@ SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 ```
 
 ### **4. Database Setup**
+Set up Supabase and run the schema. See `DATABASE_SETUP.md` for details.
+
 ```bash
-# Run the database schema
-psql -f database/schema.sql
+# Apply schema via Supabase SQL Editor or CLI
+# Use the SQL in database/schema.sql
 ```
 
 ### **5. Run Development Server**
@@ -223,16 +227,20 @@ Open [http://localhost:3000](http://localhost:3000) to see MoodMelody in action!
 <div align="center">
 
 ### **🏠 Homepage**
-*Beautiful landing page with feature showcase*
+| Dark | Light |
+|------|--------|
+| ![Home Dark](public/home-d.png) | ![Home Light](public/home-l.png) |
 
-### **📊 Dashboard** 
-*Mood tracking, journaling, and music recommendations*
+*Landing page with pricing (Basic free, Premium), **Get Started** / **Get Started Now** CTAs, and a premium modal (no-scroll, wide layout) for the Premium experience.*
+
+### **📊 Dashboard**
+*Mood tracking, chat-style journal with AI emotion detection, and music recommendations*
 
 ### **📈 Mood History**
-*Comprehensive analytics with AI insights*
+*Charts, heatmap, and AI-generated insights*
 
 ### **👤 Profile**
-*Personalized settings and preferences*
+*Profile and preferences*
 
 </div>
 
@@ -253,15 +261,15 @@ Open [http://localhost:3000](http://localhost:3000) to see MoodMelody in action!
 
 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; margin: 10px 0;">
 
-**🎯 95% Accuracy Guarantee**
-- **🥇 Primary Engine**: OpenRouter + Mistral Small 24B
-- **🔄 Smart Fallback**: Enhanced keyword detection system
-- **🌍 Global Support**: 7 languages with native understanding
-- **📊 Confidence Metrics**: Real-time certainty scoring
+**🎯 Reliable emotion analysis**
+- **🥇 Primary engine**: Google Gemini API (with optional fallback key)
+- **🔄 Smart fallback**: Enhanced keyword-based detection when API is unavailable
+- **🌍 Broad support**: Multi-language understanding
+- **📊 Confidence metrics**: Real-time certainty scoring
 
 </div>
 
-*"From 'feeling overwhelmed' to perfect emotional insight in milliseconds"*
+*"From 'feeling overwhelmed' to clear emotional insight in milliseconds"*
 
 </td>
 <td width="50%" valign="top">
@@ -376,7 +384,7 @@ Response:
 {
   "emotion": "joy",
   "confidence": 0.95,
-  "method": "openrouter"
+  "method": "gemini"
 }
 ```
 
@@ -407,9 +415,9 @@ Response:
 4. Set up Row Level Security policies
 
 ### **API Keys Setup**
-- **OpenRouter**: Get API key from [OpenRouter](https://openrouter.ai)
-- **Spotify**: Create app at [Spotify Developer](https://developer.spotify.com)
-- **Hugging Face**: Get token from [Hugging Face](https://huggingface.co/settings/tokens)
+- **Gemini**: Enable Generative Language API and create API keys at [Google AI Studio](https://aistudio.google.com/apikey) (use one or two keys for primary/fallback)
+- **Spotify**: Create an app at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+- **Supabase**: Create a project and use the project URL and anon key from [Supabase](https://supabase.com/dashboard)
 
 ## 📊 Analytics & Monitoring
 
@@ -422,7 +430,7 @@ Response:
 ## 📞 Support
 
 - **🌐 Live Demo**: [mood-melody-app.vercel.app](https://mood-melody-app.vercel.app)
-- **📧 Email**: [Contact HackStyx](mailto: princegupta8497@gmail.com)
+- **📧 Email**: [Contact HackStyx](mailto:princegupta8497@gmail.com)
 - **🐙 GitHub**: [Open an Issue](https://github.com/HackStyx/MoodMelody/issues)
 - **🐦 Twitter**: [@hackstyx](https://x.com/hackstyx)
 
